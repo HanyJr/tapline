@@ -180,6 +180,7 @@ struct Shared {
     log: Mutex<Vec<LogEntry>>,
     dir: PathBuf,
     hotkey: Mutex<Option<Shortcut>>,
+    quiet_until: Mutex<Instant>, // ignore our own key presses reaching the global shortcuts
     tray: Mutex<Option<(MenuItem<Wry>, MenuItem<Wry>)>>,
 }
 
@@ -356,6 +357,7 @@ fn start_run(app: &AppHandle, trigger: &str) -> Result<(), String> {
         let outcome: Result<bool, String> = (|| {
             let mut enigo = new_enigo()?;
             let screen = enigo.main_display().unwrap_or((0, 0));
+            let placed: std::cell::Cell<Option<(i32, i32)>> = std::cell::Cell::new(None);
             let stop_now = |enigo: &Enigo| -> bool {
                 if sh.stop.load(Ordering::SeqCst) {
                     return true;
@@ -365,7 +367,9 @@ fn start_run(app: &AppHandle, trigger: &str) -> Result<(), String> {
                         let (w, h) = screen;
                         let near = |a: i32, b: i32| (a - b).abs() <= 2;
                         let in_corner = (near(x, 0) || near(x, w - 1)) && (near(y, 0) || near(y, h - 1));
-                        if in_corner {
+                        // ignore it when Tapline itself put the mouse there
+                        let ours = placed.get().map(|(px, py)| near(x, px) && near(y, py)).unwrap_or(false);
+                        if in_corner && !ours {
                             sh.stop.store(true, Ordering::SeqCst);
                             return true;
                         }
@@ -393,6 +397,10 @@ fn start_run(app: &AppHandle, trigger: &str) -> Result<(), String> {
                         return Ok(false);
                     }
                     emit("busy", format!("Round {} of {} · step {}", r + 1, total, i + 1), done, false);
+                    let typing = st.kind == "key" || st.kind == "text";
+                    if typing {
+                        *sh.quiet_until.lock().unwrap() = Instant::now() + Duration::from_secs(30);
+                    }
                     let res: Result<(), enigo::InputError> = match st.kind.as_str() {
                         "click" => (|| {
                             let (tx, ty) = (st.x.unwrap_or(0), st.y.unwrap_or(0));
@@ -413,6 +421,7 @@ fn start_run(app: &AppHandle, trigger: &str) -> Result<(), String> {
                                 }
                             }
                             enigo.move_mouse(tx, ty, Coordinate::Abs)?;
+                            placed.set(Some((tx, ty)));
                             thread::sleep(Duration::from_millis(40));
                             match st.button.as_str() {
                                 "right" => enigo.button(Button::Right, Direction::Click)?,
@@ -445,6 +454,9 @@ fn start_run(app: &AppHandle, trigger: &str) -> Result<(), String> {
                         }
                         _ => Ok(()),
                     };
+                    if typing {
+                        *sh.quiet_until.lock().unwrap() = Instant::now() + Duration::from_millis(300);
+                    }
                     res.map_err(|e| format!("Could not do step {}: {e}", i + 1))?;
                     if st.kind != "wait" && !pause(&enigo, st.delay) {
                         return Ok(false);
@@ -832,6 +844,11 @@ pub fn run_app() {
                     if event.state() != ShortcutState::Pressed {
                         return;
                     }
+                    // a key Tapline itself just pressed, not the user
+                    let quiet = app.state::<Arc<Shared>>().quiet_until.lock().map(|t| Instant::now() < *t).unwrap_or(false);
+                    if quiet {
+                        return;
+                    }
                     if *shortcut == esc() {
                         stop_everything(app);
                         return;
@@ -857,6 +874,7 @@ pub fn run_app() {
                 log: Mutex::new(log),
                 dir,
                 hotkey: Mutex::new(None),
+                quiet_until: Mutex::new(Instant::now()),
                 tray: Mutex::new(None),
             });
             app.manage(shared.clone());

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tapline - Click. Enter. Repeat.</title>
+<meta name="description" content="Tapline clicks a spot you choose, presses Enter, waits, and repeats as many times as you set. Free for Windows and Mac.">
+<link rel="icon" href="logo.png">
+<style>
+  :root {
+    --bg: #0a1422; --surface: #0e1b2c; --raised: #15263c;
+    --border: color-mix(in srgb, #a9b6c6 16%, transparent);
+    --text: #e7ecf2; --muted: #a9b6c6; --accent: #d4a84b; --accent-hover: #e0b85c; --on-accent: #0a1422;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--text); font: 16px/1.6 var(--font); -webkit-font-smoothing: antialiased; }
+  a { color: inherit; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 20px 0; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 650; text-decoration: none; }
+  .brand img { width: 32px; height: 32px; }
+  nav a.gh { font-size: 14px; color: var(--muted); text-decoration: none; padding: 10px 4px; }
+  nav a.gh:hover { color: var(--text); }
+
+  .hero { display: grid; gap: 40px; padding: 48px 0 72px; align-items: center; }
+  h1 { font-size: clamp(40px, 8vw, 68px); line-height: 1.02; letter-spacing: -0.035em; font-weight: 700; max-width: 12ch; }
+  h1 span { color: var(--accent); }
+  .lede { color: var(--muted); font-size: 18px; max-width: 42ch; margin-top: 18px; }
+  .ctas { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 10px; min-height: 50px; padding: 0 22px;
+    border-radius: 12px; font-weight: 650; text-decoration: none; border: 1px solid var(--border);
+    transition: background 140ms, border-color 140ms;
+  }
+  .btn svg { width: 18px; height: 18px; }
+  .btn.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+  .btn.primary:hover { background: var(--accent-hover); }
+  .btn.ghost:hover { border-color: var(--accent); }
+  .btn:focus-visible, nav a:focus-visible { outline: 2px solid var(--accent-hover); outline-offset: 3px; }
+  .small { font-size: 13px; color: var(--muted); margin-top: 14px; }
+  .shot { justify-self: center; width: min(360px, 100%); border-radius: 22px; border: 1px solid var(--border);
+          box-shadow: 0 30px 80px -30px rgba(0,0,0,.7); }
+
+  section.how { padding: 64px 0; border-top: 1px solid var(--border); }
+  h2 { font-size: clamp(28px, 4.5vw, 40px); letter-spacing: -0.02em; line-height: 1.1; max-width: 18ch; }
+  ol { list-style: none; padding: 0; margin-top: 36px; display: grid; gap: 28px; counter-reset: s; }
+  ol li { counter-increment: s; display: grid; grid-template-columns: 48px 1fr; gap: 16px; align-items: start; }
+  ol li::before {
+    content: counter(s); display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%;
+    border: 1px solid var(--accent); color: var(--accent); font-weight: 650;
+  }
+  ol h3 { font-size: 18px; }
+  ol p { color: var(--muted); max-width: 52ch; }
+
+  section.facts { padding: 64px 0; border-top: 1px solid var(--border); display: grid; gap: 32px; }
+  dl { display: grid; gap: 0; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  dl div { display: grid; gap: 4px; padding: 18px 20px; background: var(--surface); }
+  dl div + div { border-top: 1px solid var(--border); }
+  dt { font-weight: 600; }
+  dd { color: var(--muted); margin: 0; }
+
+  footer { padding: 32px 0 48px; border-top: 1px solid var(--border); color: var(--muted); font-size: 14px; }
+
+  @media (min-width: 860px) {
+    .hero { grid-template-columns: 1.15fr .85fr; padding: 72px 0 96px; }
+    section.how { grid-template-columns: .8fr 1.2fr; display: grid; gap: 48px; }
+    section.how ol { margin-top: 0; }
+    section.facts { grid-template-columns: .8fr 1.2fr; gap: 48px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a class="brand" href="#"><img src="logo.png" alt=""> Tapline</a>
+    <a class="gh" href="https://github.com/IanTBC/tapline/releases">Releases</a>
+  </nav>
+
+  <header class="hero">
+    <div>
+      <h1>Click. Enter. <span>Repeat.</span></h1>
+      <p class="lede">Tapline clicks the spot you choose, presses Enter, waits, and does it again as many times as you set. One key starts it, the same key stops it.</p>
+      <div class="ctas">
+        <a class="btn primary" href="https://github.com/IanTBC/tapline/releases/latest">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+          Download for Windows
+        </a>
+        <a class="btn ghost" href="https://github.com/IanTBC/tapline/releases/latest">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+          Download for Mac
+        </a>
+      </div>
+      <p class="small">Free. About 5 MB. Windows 10 and 11, macOS 11 or later.</p>
+    </div>
+    <img class="shot" src="screenshot.png" alt="The Tapline window with click spot, times to click, wait time and a Run button">
+  </header>
+
+  <section class="how">
+    <h2>Set it up once, run it all day.</h2>
+    <ol>
+      <li><div><h3>Pick the spot</h3><p>Press Set position and hold your mouse over the button you want clicked. Tapline remembers it.</p></div></li>
+      <li><div><h3>Choose how many and how fast</h3><p>Set how many times to click and how long to wait between each one, from zero to ten minutes.</p></div></li>
+      <li><div><h3>Press F8</h3><p>Tapline clicks, presses Enter, waits and repeats. Press F8 again, or Stop, to end it early.</p></div></li>
+    </ol>
+  </section>
+
+  <section class="facts">
+    <h2>Small, quiet, and yours.</h2>
+    <dl>
+      <div><dt>Stays out of the way</dt><dd>A small window that floats on top, so you can watch the progress without switching apps.</dd></div>
+      <div><dt>No account, no internet</dt><dd>Everything runs on your computer. Nothing is sent anywhere.</dd></div>
+      <div><dt>Remembers your setup</dt><dd>The spot, the count and the wait are saved for next time.</dd></div>
+      <div><dt>On a Mac</dt><dd>Allow Tapline once under System Settings, Privacy and Security, Accessibility so it can click for you.</dd></div>
+    </dl>
+  </section>
+
+  <footer>Copyright 2026 Ian Brown. Tapline 1.0.</footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tapline</title>
+<style>
+  /* ---------- Tokens: primitive ---------- */
+  :root {
+    --navy-950: #0a1422;
+    --navy-900: #0e1b2c;
+    --navy-800: #15263c;
+    --navy-700: #1e334f;
+    --navy-500: #3b5675;
+    --slate-300: #a9b6c6;
+    --slate-100: #e7ecf2;
+    --cream-50: #faf8f3;
+    --cream-100: #f1ede3;
+    --gold-400: #e0b85c;
+    --gold-500: #d4a84b;
+    --gold-700: #8a6620;
+    --red-400: #f08a7e;
+    --red-700: #a3362a;
+    --green-400: #6fd3a0;
+    --green-700: #1f7a4d;
+
+    --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+    --space-5: 20px; --space-6: 24px; --space-8: 32px;
+    --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    --dur: 140ms;
+  }
+
+  /* ---------- Tokens: semantic (dark default) ---------- */
+  :root {
+    --bg: var(--navy-950);
+    --surface: var(--navy-900);
+    --surface-raised: var(--navy-800);
+    --control: var(--navy-700);
+    --border: color-mix(in srgb, var(--slate-300) 16%, transparent);
+    --text: var(--slate-100);
+    --text-muted: var(--slate-300);
+    --accent: var(--gold-500);
+    --accent-hover: var(--gold-400);
+    --on-accent: var(--navy-950);
+    --focus: var(--gold-400);
+    --danger: var(--red-400);
+    --success: var(--green-400);
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: var(--cream-100);
+      --surface: var(--cream-50);
+      --surface-raised: #ffffff;
+      --control: #ffffff;
+      --border: color-mix(in srgb, var(--navy-900) 14%, transparent);
+      --text: var(--navy-900);
+      --text-muted: var(--navy-500);
+      --accent: var(--navy-900);
+      --accent-hover: var(--navy-700);
+      --on-accent: var(--cream-50);
+      --focus: var(--gold-700);
+      --danger: var(--red-700);
+      --success: var(--green-700);
+    }
+  }
+
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.45 var(--font);
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .app {
+    min-height: 100%;
+    display: flex; flex-direction: column; gap: var(--space-4);
+    padding: var(--space-5);
+    max-width: 440px; margin: 0 auto;
+  }
+
+  header { display: flex; align-items: center; gap: var(--space-3); }
+  header img { flex: none; display: block; }
+  .brand-name { font-size: 16px; font-weight: 650; letter-spacing: -0.01em; }
+  .brand-sub { font-size: 12px; color: var(--text-muted); }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+  }
+  .label {
+    font-size: 12px; font-weight: 600; color: var(--text-muted);
+    letter-spacing: 0.02em; margin-bottom: var(--space-2);
+  }
+
+  /* Target card leads */
+  .target { display: grid; gap: var(--space-3); }
+  .target-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+  .coords { font-size: 26px; font-weight: 650; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .coords.empty { font-size: 16px; font-weight: 500; color: var(--text-muted); }
+  .hint { font-size: 12px; color: var(--text-muted); }
+
+  /* Buttons */
+  button {
+    font: inherit; color: inherit; cursor: pointer;
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    background: var(--control);
+    min-height: 40px; padding: 0 var(--space-4);
+    display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+    transition: background var(--dur), border-color var(--dur), transform var(--dur);
+  }
+  button:hover { border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+  button:active { transform: scale(0.98); }
+  button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+  button svg { width: 16px; height: 16px; }
+
+  .primary {
+    width: 100%; min-height: 52px; font-size: 15px; font-weight: 650;
+    background: var(--accent); color: var(--on-accent); border-color: transparent;
+  }
+  .primary:hover { background: var(--accent-hover); border-color: transparent; }
+  .primary.stop { background: transparent; color: var(--danger); border-color: var(--danger); }
+  .primary.stop:hover { background: color-mix(in srgb, var(--danger) 12%, transparent); }
+
+  /* Steppers */
+  .settings { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+  .stepper {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface-raised); border: 1px solid var(--border);
+    border-radius: var(--radius-md); padding: var(--space-1);
+  }
+  .stepper button { min-height: 36px; width: 36px; padding: 0; border-color: transparent; background: transparent; }
+  .stepper button:hover { background: var(--control); }
+  .stepper input {
+    width: 100%; min-width: 0; text-align: center; background: transparent; border: 0;
+    color: var(--text); font: 600 18px var(--font); font-variant-numeric: tabular-nums;
+  }
+  .stepper input:focus-visible { outline: 2px solid var(--focus); border-radius: 6px; }
+  .unit { font-size: 12px; color: var(--text-muted); margin-top: var(--space-1); }
+
+  /* Progress */
+  .status { display: grid; gap: var(--space-2); }
+  .status-line { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+  .status-text { display: flex; align-items: center; gap: var(--space-2); font-weight: 550; }
+  .status-text svg { width: 16px; height: 16px; flex: none; }
+  .status-count { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .bar { height: 6px; border-radius: 99px; background: var(--surface-raised); overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 300ms ease; }
+  .is-error { color: var(--danger); }
+  .is-done { color: var(--success); }
+
+  .foot { font-size: 12px; color: var(--text-muted); text-align: center; margin-top: auto; }
+  kbd {
+    font: 600 11px var(--font); padding: 1px 6px; border-radius: 5px;
+    border: 1px solid var(--border); background: var(--surface-raised);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<main class="app">
+  <header>
+    <img src="logo.png" width="44" height="44" alt="">
+    <div>
+      <div class="brand-name">Tapline</div>
+      <div class="brand-sub">Click. Enter. Repeat.</div>
+    </div>
+  </header>
+
+  <section class="card target" aria-labelledby="t-label">
+    <div class="label" id="t-label">Click spot</div>
+    <div class="target-row">
+      <div id="coords" class="coords empty">Not set yet</div>
+      <button id="pickBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg>
+        <span id="pickLabel">Set position</span>
+      </button>
+    </div>
+    <p class="hint" id="pickHint">Press Set position, then hold your mouse over the spot to click. It saves after 3 seconds.</p>
+  </section>
+
+  <section class="settings" aria-label="Settings">
+    <div class="card">
+      <label class="label" for="count">Times to click</label>
+      <div class="stepper">
+        <button type="button" data-step="count" data-dir="-1" aria-label="Fewer clicks">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>
+        </button>
+        <input id="count" type="text" inputmode="numeric" value="2" aria-describedby="count-unit">
+        <button type="button" data-step="count" data-dir="1" aria-label="More clicks">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+      <div class="unit" id="count-unit">click + Enter each time</div>
+    </div>
+    <div class="card">
+      <label class="label" for="wait">Wait between</label>
+      <div class="stepper">
+        <button type="button" data-step="wait" data-dir="-1" aria-label="Shorter wait">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>
+        </button>
+        <input id="wait" type="text" inputmode="decimal" value="2" aria-describedby="wait-unit">
+        <button type="button" data-step="wait" data-dir="1" aria-label="Longer wait">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+      <div class="unit" id="wait-unit">seconds</div>
+    </div>
+  </section>
+
+  <section class="card status" aria-live="polite">
+    <div class="status-line">
+      <div class="status-text" id="statusText">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 2.5"/></svg>
+        <span>Ready</span>
+      </div>
+      <div class="status-count" id="statusCount">0 / 2</div>
+    </div>
+    <div class="bar"><i id="bar"></i></div>
+  </section>
+
+  <button id="runBtn" class="primary" type="button">
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"/></svg>
+    <span id="runLabel">Run</span>
+  </button>
+
+  <p class="foot" id="foot"></p>
+</main>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const ICONS = {
+    ready: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 2.5"/></svg>',
+    busy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.2-8.6"/></svg>',
+    done: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>',
+    error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg>',
+  };
+  const PLAY = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"/></svg>';
+  const STOP = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
+
+  const LIMITS = { count: [1, 999, 1], wait: [0, 600, 0.5] };
+  let running = false, picking = false, hasPos = false;
+
+  // Tauri bridge, with a preview fallback for a normal browser.
+  const T = window.__TAURI__;
+  const api = T ? {
+    get_state: () => T.core.invoke("get_state"),
+    capture_position: async () => { const [x, y] = await T.core.invoke("capture_position"); return { x, y }; },
+    save: (count, wait) => T.core.invoke("save", { count, wait }),
+    start: (count, wait) => T.core.invoke("start", { count, wait }),
+    stop: () => T.core.invoke("stop"),
+  } : {
+    get_state: async () => ({ x: null, y: null, count: 2, wait: 2, platform: "preview", version: "1.0.0" }),
+    capture_position: async () => ({ x: 812, y: 244 }),
+    save: async () => {}, start: async () => {}, stop: async () => {},
+  };
+
+  function clampField(name) {
+    const [min, max] = LIMITS[name];
+    let v = parseFloat($(name).value.replace(",", "."));
+    if (isNaN(v)) v = name === "count" ? 2 : 2;
+    v = Math.min(max, Math.max(min, v));
+    if (name === "count") v = Math.round(v);
+    $(name).value = String(v);
+    return v;
+  }
+  function persist() {
+    api.save(clampField("count"), clampField("wait"));
+    if (!running) $("statusCount").textContent = `0 / ${clampField("count")}`;
+  }
+
+  function setStatus(kind, text, done, total) {
+    const el = $("statusText");
+    el.className = "status-text" + (kind === "error" ? " is-error" : kind === "done" ? " is-done" : "");
+    el.innerHTML = ICONS[kind] + `<span>${text}</span>`;
+    if (total != null) {
+      $("statusCount").textContent = `${done} / ${total}`;
+      $("bar").style.width = total ? `${(done / total) * 100}%` : "0";
+    }
+  }
+
+  function setCoords(x, y) {
+    hasPos = x != null;
+    const c = $("coords");
+    c.className = "coords" + (hasPos ? "" : " empty");
+    c.textContent = hasPos ? `${x}, ${y}` : "Not set yet";
+    $("pickLabel").textContent = hasPos ? "Change" : "Set position";
+  }
+
+  function setRunning(on) {
+    running = on;
+    const b = $("runBtn");
+    b.classList.toggle("stop", on);
+    b.innerHTML = (on ? STOP : PLAY) + `<span>${on ? "Stop" : "Run"}</span>`;
+    $("pickBtn").disabled = on;
+    document.querySelectorAll(".stepper button, .stepper input").forEach(e => e.disabled = on);
+  }
+
+  if (T) {
+    T.event.listen("progress", ({ payload: p }) => {
+      setStatus(p.kind, p.text, p.done, p.total);
+      if (p.finished) setRunning(false);
+    });
+    T.event.listen("hotkey", () => { if (!picking) $("runBtn").click(); });
+  }
+
+  $("pickBtn").addEventListener("click", async () => {
+    if (picking || running) return;
+    picking = true;
+    $("pickBtn").disabled = true; $("runBtn").disabled = true;
+    for (const n of [3, 2, 1]) {
+      setStatus("busy", `Hold the mouse on the spot... ${n}`);
+      await new Promise(r => setTimeout(r, 1000));
+    }
+    try {
+      const p = await api.capture_position();
+      setCoords(p.x, p.y);
+      setStatus("done", "Position saved", 0, clampField("count"));
+    } catch (e) {
+      setStatus("error", String(e));
+    }
+    $("pickBtn").disabled = false; $("runBtn").disabled = false;
+    picking = false;
+  });
+
+  $("runBtn").addEventListener("click", async () => {
+    if (picking) return;
+    if (running) { api.stop(); return; }
+    if (!hasPos) { setStatus("error", "Set the button position first"); return; }
+    const count = clampField("count"), wait = clampField("wait");
+    persist();
+    setRunning(true);
+    setStatus("busy", "Starting...", 0, count);
+    try { await api.start(count, wait); }
+    catch (e) { setStatus("error", String(e)); setRunning(false); }
+  });
+
+  document.querySelectorAll("[data-step]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const name = btn.dataset.step, [, , step] = LIMITS[name];
+      $(name).value = String(clampField(name) + step * Number(btn.dataset.dir));
+      persist();
+    });
+  });
+  ["count", "wait"].forEach(id => {
+    $(id).addEventListener("change", persist);
+    $(id).addEventListener("keydown", e => { if (e.key === "Enter") e.target.blur(); });
+  });
+
+  async function init() {
+    const s = await api.get_state();
+    setCoords(s.x, s.y);
+    $("count").value = s.count; $("wait").value = s.wait;
+    $("statusCount").textContent = `0 / ${s.count}`;
+    $("foot").innerHTML = 'Press <kbd>F8</kbd> from any window to run or stop.' +
+      (s.platform === "mac" ? ' On a Mac keyboard: <kbd>fn</kbd> + <kbd>F8</kbd>.' : '');
+  }
+  init();
+</script>
+</body>
+</html>

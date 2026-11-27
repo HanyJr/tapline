@@ -18,8 +18,10 @@ jobs:
         include:
           - platform: windows-latest
             args: ""
+            check_target: ""
           - platform: macos-latest
             args: "--target universal-apple-darwin"
+            check_target: "--target aarch64-apple-darwin"
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
@@ -38,13 +40,54 @@ jobs:
 
       - run: npm ci
 
+      # Compile check first, so errors can be saved where they are easy to read
+      - name: Compile check
+        id: check
+        continue-on-error: true
+        shell: bash
+        run: cargo check --manifest-path src-tauri/Cargo.toml ${{ matrix.check_target }} --color never 2>&1 | tee check.log; exit ${PIPESTATUS[0]}
+
+      - name: Save build errors to a branch
+        if: steps.check.outcome == 'failure'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/logs" && cp check.log "$RUNNER_TEMP/logs/" && cd "$RUNNER_TEMP/logs"
+          git init -q -b logs && git add . && git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -qm "build log"
+          git push -fq "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}" logs:ci-logs-${{ runner.os }}
+          exit 1
+
       - uses: tauri-apps/tauri-action@v0
+        id: tauri
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: v__VERSION__
           releaseName: "Tapline v__VERSION__"
-          releaseBody: "Download the Windows installer (.exe) or the Mac disk image (.dmg) below."
+          releaseBody: |
+            **Windows:** download `Tapline-Windows-Setup.exe`
+            **Mac (Apple Silicon and Intel):** download `Tapline-Mac.dmg`
+
+            New in this version: Watch mode, multi-step sequences, presets, mouse travel time, custom start/stop key, emergency stop, sound and notification, run history, tray / menu bar mode, open at login and update notices.
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+
+      # Same installers again under names that never change, so download links keep working
+      - name: Upload installers with fixed names
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_ID: ${{ steps.tauri.outputs.releaseId }}
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            FILE=$(ls src-tauri/target/release/bundle/nsis/*-setup.exe | head -1); NAME=Tapline-Windows-Setup.exe
+          else
+            FILE=$(ls src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg | head -1); NAME=Tapline-Mac.dmg
+          fi
+          echo "Uploading $FILE as $NAME to release $RELEASE_ID"
+          OLD=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" "https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets" | grep -B3 "\"name\": \"$NAME\"" | grep '"id"' | head -1 | tr -dc '0-9')
+          if [ -n "$OLD" ]; then curl -s -X DELETE -H "Authorization: Bearer $GITHUB_TOKEN" "https://api.github.com/repos/${{ github.repository }}/releases/assets/$OLD"; fi
+          curl -sf -X POST -H "Authorization: Bearer $GITHUB_TOKEN" -H "Content-Type: application/octet-stream" \
+            --data-binary @"$FILE" "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=$NAME" > /dev/null

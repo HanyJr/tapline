@@ -5,366 +5,585 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tapline</title>
 <style>
-  /* ---------- Tokens: primitive ---------- */
-  :root {
-    --navy-950: #0a1422;
-    --navy-900: #0e1b2c;
-    --navy-800: #15263c;
-    --navy-700: #1e334f;
-    --navy-500: #3b5675;
-    --slate-300: #a9b6c6;
-    --slate-100: #e7ecf2;
-    --cream-50: #faf8f3;
-    --cream-100: #f1ede3;
-    --gold-400: #e0b85c;
-    --gold-500: #d4a84b;
-    --gold-700: #8a6620;
-    --red-400: #f08a7e;
-    --red-700: #a3362a;
-    --green-400: #6fd3a0;
-    --green-700: #1f7a4d;
-
-    --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
-    --space-5: 20px; --space-6: 24px; --space-8: 32px;
-    --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px;
-    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
-    --dur: 140ms;
-  }
-
-  /* ---------- Tokens: semantic (dark default) ---------- */
-  :root {
-    --bg: var(--navy-950);
-    --surface: var(--navy-900);
-    --surface-raised: var(--navy-800);
-    --control: var(--navy-700);
-    --border: color-mix(in srgb, var(--slate-300) 16%, transparent);
-    --text: var(--slate-100);
-    --text-muted: var(--slate-300);
-    --accent: var(--gold-500);
-    --accent-hover: var(--gold-400);
-    --on-accent: var(--navy-950);
-    --focus: var(--gold-400);
-    --danger: var(--red-400);
-    --success: var(--green-400);
-  }
-  @media (prefers-color-scheme: light) {
-    :root {
-      --bg: var(--cream-100);
-      --surface: var(--cream-50);
-      --surface-raised: #ffffff;
-      --control: #ffffff;
-      --border: color-mix(in srgb, var(--navy-900) 14%, transparent);
-      --text: var(--navy-900);
-      --text-muted: var(--navy-500);
-      --accent: var(--navy-900);
-      --accent-hover: var(--navy-700);
-      --on-accent: var(--cream-50);
-      --focus: var(--gold-700);
-      --danger: var(--red-700);
-      --success: var(--green-700);
-    }
-  }
-
-  * { box-sizing: border-box; margin: 0; }
-  html, body { height: 100%; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font: 14px/1.45 var(--font);
-    -webkit-font-smoothing: antialiased;
-    user-select: none;
-    -webkit-user-select: none;
-  }
-  .app {
-    min-height: 100%;
-    display: flex; flex-direction: column; gap: var(--space-4);
-    padding: var(--space-5);
-    max-width: 440px; margin: 0 auto;
-  }
-
-  header { display: flex; align-items: center; gap: var(--space-3); }
-  header img { flex: none; display: block; }
-  .brand-name { font-size: 16px; font-weight: 650; letter-spacing: -0.01em; }
-  .brand-sub { font-size: 12px; color: var(--text-muted); }
-
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: var(--space-4);
-  }
-  .label {
-    font-size: 12px; font-weight: 600; color: var(--text-muted);
-    letter-spacing: 0.02em; margin-bottom: var(--space-2);
-  }
-
-  /* Target card leads */
-  .target { display: grid; gap: var(--space-3); }
-  .target-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
-  .coords { font-size: 26px; font-weight: 650; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
-  .coords.empty { font-size: 16px; font-weight: 500; color: var(--text-muted); }
-  .hint { font-size: 12px; color: var(--text-muted); }
-
-  /* Buttons */
-  button {
-    font: inherit; color: inherit; cursor: pointer;
-    border: 1px solid var(--border); border-radius: var(--radius-md);
-    background: var(--control);
-    min-height: 40px; padding: 0 var(--space-4);
-    display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
-    transition: background var(--dur), border-color var(--dur), transform var(--dur);
-  }
-  button:hover { border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
-  button:active { transform: scale(0.98); }
-  button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-  button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
-  button svg { width: 16px; height: 16px; }
-
-  .primary {
-    width: 100%; min-height: 52px; font-size: 15px; font-weight: 650;
-    background: var(--accent); color: var(--on-accent); border-color: transparent;
-  }
-  .primary:hover { background: var(--accent-hover); border-color: transparent; }
-  .primary.stop { background: transparent; color: var(--danger); border-color: var(--danger); }
-  .primary.stop:hover { background: color-mix(in srgb, var(--danger) 12%, transparent); }
-
-  /* Steppers */
-  .settings { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
-  .stepper {
-    display: flex; align-items: center; justify-content: space-between;
-    background: var(--surface-raised); border: 1px solid var(--border);
-    border-radius: var(--radius-md); padding: var(--space-1);
-  }
-  .stepper button { min-height: 36px; width: 36px; padding: 0; border-color: transparent; background: transparent; }
-  .stepper button:hover { background: var(--control); }
-  .stepper input {
-    width: 100%; min-width: 0; text-align: center; background: transparent; border: 0;
-    color: var(--text); font: 600 18px var(--font); font-variant-numeric: tabular-nums;
-  }
-  .stepper input:focus-visible { outline: 2px solid var(--focus); border-radius: 6px; }
-  .unit { font-size: 12px; color: var(--text-muted); margin-top: var(--space-1); }
-
-  /* Progress */
-  .status { display: grid; gap: var(--space-2); }
-  .status-line { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
-  .status-text { display: flex; align-items: center; gap: var(--space-2); font-weight: 550; }
-  .status-text svg { width: 16px; height: 16px; flex: none; }
-  .status-count { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
-  .bar { height: 6px; border-radius: 99px; background: var(--surface-raised); overflow: hidden; }
-  .bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 300ms ease; }
-  .is-error { color: var(--danger); }
-  .is-done { color: var(--success); }
-
-  .foot { font-size: 12px; color: var(--text-muted); text-align: center; margin-top: auto; }
-  kbd {
-    font: 600 11px var(--font); padding: 1px 6px; border-radius: 5px;
-    border: 1px solid var(--border); background: var(--surface-raised);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    * { transition: none !important; }
-  }
+:root{
+  --navy-950:#0a1422;--navy-900:#0e1b2c;--navy-800:#15263c;--navy-700:#1e334f;--navy-500:#3b5675;
+  --slate-300:#a9b6c6;--slate-100:#e7ecf2;--cream-50:#faf8f3;--cream-100:#f1ede3;
+  --gold-400:#e0b85c;--gold-500:#d4a84b;--gold-700:#8a6620;--red-400:#f08a7e;--red-700:#a3362a;--green-400:#6fd3a0;--green-700:#1f7a4d;
+  --r-sm:8px;--r-md:12px;--r-lg:16px;--font:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;--dur:140ms;
+  --bg:var(--navy-950);--surface:var(--navy-900);--raised:var(--navy-800);--control:var(--navy-700);
+  --border:rgba(169,182,198,.16);--text:var(--slate-100);--muted:var(--slate-300);
+  --accent:var(--gold-500);--accent-hover:var(--gold-400);--on-accent:var(--navy-950);--focus:var(--gold-400);
+  --danger:var(--red-400);--success:var(--green-400);--pop:#132238;
+}
+@media (prefers-color-scheme: light){:root{
+  --bg:var(--cream-100);--surface:var(--cream-50);--raised:#fff;--control:#fff;--border:rgba(14,27,44,.14);
+  --text:var(--navy-900);--muted:var(--navy-500);--accent:var(--navy-900);--accent-hover:var(--navy-700);
+  --on-accent:var(--cream-50);--focus:var(--gold-700);--danger:var(--red-700);--success:var(--green-700);--pop:#fff}}
+*{box-sizing:border-box;margin:0;min-width:0}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font:14px/1.45 var(--font);-webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none;overflow:hidden}
+.app{height:100%;display:grid;grid-template-rows:auto auto auto 1fr;max-width:520px;margin:0 auto}
+header{display:flex;align-items:center;gap:10px;padding:14px 16px 10px}
+header img{width:34px;height:34px;flex:none}
+.brand{font-weight:650;font-size:15px;line-height:1.1}
+.brand small{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+header .dd{margin-left:auto;max-width:56%}
+.update{margin:0 16px 8px;display:flex;align-items:center;gap:10px;justify-content:space-between;padding:8px 12px;border-radius:var(--r-md);background:color-mix(in srgb,var(--gold-500) 16%,transparent);border:1px solid color-mix(in srgb,var(--gold-500) 45%,transparent);font-size:13px}
+nav{display:flex;gap:4px;margin:0 16px;padding:4px;border-radius:var(--r-md);background:var(--surface);border:1px solid var(--border)}
+nav button{flex:1;min-height:36px;border:0;background:none;color:var(--muted);font:600 13px var(--font);border-radius:9px;cursor:pointer}
+nav button[aria-selected=true]{background:var(--raised);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.18)}
+nav button:hover{color:var(--text)}
+main{overflow-y:auto;padding:14px 16px 18px}
+section[role=tabpanel]{display:grid;gap:12px}
+section[hidden]{display:none}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;display:grid;gap:10px;align-content:start}
+.label{font-size:12px;font-weight:600;color:var(--muted)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.hint{font-size:12px;color:var(--muted)}
+.big{font-size:22px;font-weight:650;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button{font:inherit;color:inherit;cursor:pointer}
+.btn{border:1px solid var(--border);border-radius:var(--r-md);background:var(--control);min-height:38px;padding:0 14px;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:background var(--dur),border-color var(--dur),transform var(--dur);white-space:nowrap}
+.btn:hover{border-color:color-mix(in srgb,var(--accent) 60%,transparent)}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn svg{width:16px;height:16px;flex:none}
+.btn.sm{min-height:32px;padding:0 10px;font-size:13px}
+.btn.icon{width:32px;min-height:32px;padding:0}
+.btn.ghost{background:transparent;border-color:transparent}
+.btn.ghost:hover{background:var(--raised)}
+.primary{width:100%;min-height:52px;font-size:15px;font-weight:650;background:var(--accent);color:var(--on-accent);border-color:transparent}
+.primary:hover{background:var(--accent-hover);border-color:transparent}
+.primary.stop{background:transparent;color:var(--danger);border-color:var(--danger)}
+.danger{color:var(--danger)}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+input{font:inherit;color:var(--text)}
+.field{width:100%;min-height:38px;border-radius:var(--r-md);border:1px solid var(--border);background:var(--raised);padding:0 12px;font-size:14px}
+.field:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+.stepper{display:flex;align-items:center;background:var(--raised);border:1px solid var(--border);border-radius:var(--r-md);padding:3px}
+.stepper button{width:32px;min-height:32px;border:0;background:transparent;border-radius:8px;display:grid;place-items:center}
+.stepper button:hover{background:var(--control)}
+.stepper button svg{width:15px;height:15px}
+.stepper input{width:100%;text-align:center;background:transparent;border:0;font-weight:600;font-size:16px;font-variant-numeric:tabular-nums}
+.stepper input:focus-visible{outline:2px solid var(--focus);border-radius:6px}
+.unit{font-size:12px;color:var(--muted);margin-top:4px}
+.seg{display:flex;gap:3px;padding:3px;border-radius:10px;background:var(--raised);border:1px solid var(--border)}
+.seg button{flex:1;min-height:30px;border:0;background:none;border-radius:7px;font-size:13px;font-weight:600;color:var(--muted);padding:0 8px}
+.seg button[aria-pressed=true]{background:var(--control);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{min-height:30px;padding:0 12px;border-radius:99px;border:1px solid var(--border);background:var(--raised);font-size:13px;font-weight:600;color:var(--muted)}
+.chip[aria-pressed=true]{border-color:var(--accent);color:var(--text);background:color-mix(in srgb,var(--accent) 16%,var(--raised))}
+.switch{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:44px;border:0;background:none;text-align:left;padding:0}
+.switch .t{display:grid;gap:2px}
+.switch .t b{font-weight:600;font-size:14px}
+.track{flex:none;width:42px;height:24px;border-radius:99px;background:var(--control);border:1px solid var(--border);position:relative;transition:background var(--dur)}
+.track::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--muted);transition:transform var(--dur),background var(--dur)}
+.switch[aria-checked=true] .track{background:var(--accent);border-color:transparent}
+.switch[aria-checked=true] .track::after{transform:translateX(18px);background:var(--on-accent)}
+.status{display:grid;gap:8px}
+.st{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.st-t{display:flex;align-items:center;gap:8px;font-weight:600}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.dot.busy{background:var(--accent);animation:pulse 1s infinite}
+.dot.ok{background:var(--success)}.dot.err{background:var(--danger)}
+@keyframes pulse{50%{opacity:.35}}
+.count{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.meter{height:6px;border-radius:99px;background:var(--raised);overflow:hidden}
+.meter i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+.err-text{color:var(--danger)}
+.ok-text{color:var(--success)}
+.swatch{width:34px;height:34px;border-radius:10px;border:1px solid var(--border);flex:none;background:repeating-conic-gradient(var(--raised) 0 25%,var(--control) 0 50%) 0 0/10px 10px}
+.step{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:12px;display:grid;gap:10px}
+.step-h{display:flex;align-items:center;gap:8px}
+.num{width:24px;height:24px;border-radius:50%;border:1px solid var(--accent);color:var(--accent);display:grid;place-items:center;font-size:12px;font-weight:650;flex:none}
+@media (prefers-color-scheme: light){.num{color:var(--gold-700);border-color:var(--gold-700)}}
+.step-h .seg{flex:1}
+.step-actions{display:flex;gap:2px}
+.log{display:grid;gap:2px;max-height:220px;overflow:auto}
+.log-r{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:8px;font-size:13px;padding:6px 2px;border-bottom:1px solid var(--border)}
+.log-r:last-child{border-bottom:0}
+.log-r span:first-child{color:var(--muted);font-variant-numeric:tabular-nums}
+.log-r span:last-child{color:var(--muted);white-space:nowrap}
+.foot{font-size:12px;color:var(--muted);text-align:center}
+kbd{font:600 11px var(--font);padding:1px 6px;border-radius:5px;border:1px solid var(--border);background:var(--raised);white-space:nowrap}
+/* dropdown */
+.dd{position:relative}
+.dd>button{width:100%;min-height:36px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 10px 0 12px;border-radius:var(--r-md);border:1px solid var(--border);background:var(--raised);font-weight:600;font-size:13px}
+.dd>button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dd>button svg{width:14px;height:14px;flex:none;color:var(--muted)}
+.dd ul{position:absolute;z-index:30;top:calc(100% + 6px);right:0;min-width:100%;max-height:260px;overflow:auto;list-style:none;padding:5px;border-radius:var(--r-md);background:var(--pop);border:1px solid var(--border);box-shadow:0 16px 40px -12px rgba(0,0,0,.55)}
+.dd li{padding:8px 10px;border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap;display:flex;justify-content:space-between;gap:12px}
+.dd li[aria-selected=true]{color:var(--accent);font-weight:600}
+@media (prefers-color-scheme: light){.dd li[aria-selected=true]{color:var(--gold-700)}}
+.dd li.active{background:var(--raised)}
+.dd li.sep{border-top:1px solid var(--border);margin-top:4px;padding-top:10px}
+.dialog{position:fixed;inset:0;background:rgba(5,10,18,.55);display:grid;place-items:center;padding:20px;z-index:50}
+.dialog[hidden]{display:none}
+.dialog .card{width:100%;max-width:340px;background:var(--surface)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
-<main class="app">
+<div class="app">
   <header>
-    <img src="logo.png" width="44" height="44" alt="">
-    <div>
-      <div class="brand-name">Tapline</div>
-      <div class="brand-sub">Click. Enter. Repeat.</div>
-    </div>
+    <img src="logo.png" alt="">
+    <div class="brand">Tapline<small>Click. Enter. Repeat.</small></div>
+    <div class="dd" id="presetDD"></div>
   </header>
-
-  <section class="card target" aria-labelledby="t-label">
-    <div class="label" id="t-label">Click spot</div>
-    <div class="target-row">
-      <div id="coords" class="coords empty">Not set yet</div>
-      <button id="pickBtn" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg>
-        <span id="pickLabel">Set position</span>
-      </button>
-    </div>
-    <p class="hint" id="pickHint">Press Set position, then hold your mouse over the spot to click. It saves after 3 seconds.</p>
-  </section>
-
-  <section class="settings" aria-label="Settings">
-    <div class="card">
-      <label class="label" for="count">Times to click</label>
-      <div class="stepper">
-        <button type="button" data-step="count" data-dir="-1" aria-label="Fewer clicks">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>
-        </button>
-        <input id="count" type="text" inputmode="numeric" value="2" aria-describedby="count-unit">
-        <button type="button" data-step="count" data-dir="1" aria-label="More clicks">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-        </button>
+  <div class="update" id="update" hidden><span id="updateText"></span><button class="btn sm" id="updateBtn" type="button">Download</button></div>
+  <nav role="tablist" aria-label="Sections">
+    <button role="tab" id="tab-run" aria-controls="run" aria-selected="true">Run</button>
+    <button role="tab" id="tab-steps" aria-controls="steps" aria-selected="false" tabindex="-1">Steps</button>
+    <button role="tab" id="tab-watch" aria-controls="watch" aria-selected="false" tabindex="-1">Watch</button>
+    <button role="tab" id="tab-settings" aria-controls="settings" aria-selected="false" tabindex="-1">Settings</button>
+  </nav>
+  <main>
+    <!-- RUN -->
+    <section id="run" role="tabpanel" aria-labelledby="tab-run">
+      <div class="card">
+        <div class="row"><span class="label">Sequence</span><button class="btn sm ghost" type="button" data-go="steps">Edit steps</button></div>
+        <div id="summary" class="muted"></div>
       </div>
-      <div class="unit" id="count-unit">click + Enter each time</div>
-    </div>
-    <div class="card">
-      <label class="label" for="wait">Wait between</label>
-      <div class="stepper">
-        <button type="button" data-step="wait" data-dir="-1" aria-label="Shorter wait">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>
-        </button>
-        <input id="wait" type="text" inputmode="decimal" value="2" aria-describedby="wait-unit">
-        <button type="button" data-step="wait" data-dir="1" aria-label="Longer wait">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-        </button>
+      <div class="two">
+        <div class="card"><label class="label" for="rounds">Rounds</label><div class="stepper" data-field="rounds"></div><div class="unit">times to repeat</div></div>
+        <div class="card"><label class="label" for="round_wait">Wait between</label><div class="stepper" data-field="round_wait"></div><div class="unit">seconds</div></div>
       </div>
-      <div class="unit" id="wait-unit">seconds</div>
-    </div>
-  </section>
-
-  <section class="card status" aria-live="polite">
-    <div class="status-line">
-      <div class="status-text" id="statusText">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 2.5"/></svg>
-        <span>Ready</span>
+      <div class="card status" aria-live="polite">
+        <div class="st"><span class="st-t"><span class="dot" id="dot"></span><span id="stText">Ready</span></span><span class="count" id="stCount"></span></div>
+        <div class="meter"><i id="bar"></i></div>
       </div>
-      <div class="status-count" id="statusCount">0 / 2</div>
-    </div>
-    <div class="bar"><i id="bar"></i></div>
-  </section>
+      <button class="btn primary" id="runBtn" type="button"></button>
+      <div class="card">
+        <button class="switch" role="switch" id="watchQuick" aria-checked="false" type="button"><span class="t"><b>Watch mode</b><span class="hint" id="watchQuickText">Starts the run when the button changes color</span></span><span class="track"></span></button>
+      </div>
+      <div class="card">
+        <div class="row"><span class="label" id="todayText">Today: no runs yet</span><button class="btn sm ghost" type="button" id="clearLog">Clear</button></div>
+        <div class="log" id="log"></div>
+      </div>
+      <p class="foot" id="foot"></p>
+    </section>
 
-  <button id="runBtn" class="primary" type="button">
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"/></svg>
-    <span id="runLabel">Run</span>
-  </button>
+    <!-- STEPS -->
+    <section id="steps" role="tabpanel" aria-labelledby="tab-steps" hidden>
+      <p class="hint">Each round runs these steps from top to bottom.</p>
+      <div id="stepList" style="display:grid;gap:10px"></div>
+      <button class="btn" type="button" id="addStep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add step</button>
+    </section>
 
-  <p class="foot" id="foot"></p>
-</main>
+    <!-- WATCH -->
+    <section id="watch" role="tabpanel" aria-labelledby="tab-watch" hidden>
+      <p class="hint">Tapline watches one spot on the screen and starts the run when it turns your trigger color. Keep that spot visible.</p>
+      <div class="card">
+        <span class="label">Trigger</span>
+        <div class="row">
+          <div style="display:flex;align-items:center;gap:10px"><span class="swatch" id="trigSw"></span><div><b id="trigText">Not set yet</b><div class="hint" id="trigPos"></div></div></div>
+          <button class="btn sm" type="button" id="setTrig">Set from screen</button>
+        </div>
+        <p class="hint" id="trigHint">Make the button show its "new" color, press Set from screen, then hold the mouse on it for 3 seconds.</p>
+      </div>
+      <div class="card">
+        <span class="label">Right now</span>
+        <div class="row"><div style="display:flex;align-items:center;gap:10px"><span class="swatch" id="liveSw"></span><b id="liveText" class="muted">Not watching a spot yet</b></div></div>
+      </div>
+      <div class="two">
+        <div class="card"><label class="label" for="tolerance">Sensitivity</label><div class="stepper" data-field="tolerance"></div><div class="unit">% color difference</div></div>
+        <div class="card"><label class="label" for="cooldown">Cooldown</label><div class="stepper" data-field="cooldown"></div><div class="unit">sec before it can fire again</div></div>
+      </div>
+      <div class="card status" aria-live="polite">
+        <div class="st"><span class="st-t"><span class="dot" id="wDot"></span><span id="wText">Watch is off</span></span></div>
+      </div>
+      <button class="btn primary" id="watchBtn" type="button">Start watching</button>
+      <p class="hint" id="macWatchNote" hidden>On a Mac, Watch needs Screen Recording permission: System Settings, Privacy &amp; Security, Screen Recording. Turn on Tapline, then reopen it.</p>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="settings" role="tabpanel" aria-labelledby="tab-settings" hidden>
+      <div class="card">
+        <span class="label">Start and stop key</span>
+        <div class="chips" id="hkMods"></div>
+        <div class="dd" id="hkDD"></div>
+        <p class="hint" id="hkHint"></p>
+      </div>
+      <div class="card">
+        <span class="label">Emergency stop</span>
+        <p class="hint">Press <kbd>Esc</kbd> at any time to stop the run and switch Watch off.</p>
+        <button class="switch" role="switch" data-set="corner_stop" type="button"><span class="t"><b>Stop when the mouse hits a screen corner</b><span class="hint">Slam the mouse into any corner to stop</span></span><span class="track"></span></button>
+      </div>
+      <div class="card">
+        <span class="label">When Watch starts a run</span>
+        <button class="switch" role="switch" data-set="sound" type="button"><span class="t"><b>Play a sound</b></span><span class="track"></span></button>
+        <button class="switch" role="switch" data-set="notify" type="button"><span class="t"><b>Show a notification</b></span><span class="track"></span></button>
+      </div>
+      <div class="card">
+        <span class="label">App</span>
+        <button class="switch" role="switch" data-set="tray_on_close" type="button"><span class="t"><b>Keep running in the tray when closed</b><span class="hint" id="trayHint">Closing the window hides it. Quit from the tray icon.</span></span><span class="track"></span></button>
+        <button class="switch" role="switch" id="autostart" type="button"><span class="t"><b>Open at login</b></span><span class="track"></span></button>
+      </div>
+      <div class="card">
+        <div class="row"><span><b>Tapline</b> <span class="muted" id="ver"></span></span><button class="btn sm" type="button" id="checkUpd">Check for updates</button></div>
+        <p class="hint" id="updMsg"></p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="dialog" id="dlg" hidden role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+  <div class="card">
+    <b id="dlgTitle"></b>
+    <input class="field" id="dlgInput" aria-labelledby="dlgTitle">
+    <p class="hint" id="dlgMsg"></p>
+    <div class="row" style="justify-content:flex-end"><button class="btn" type="button" id="dlgCancel">Cancel</button><button class="btn" type="button" id="dlgOk" style="background:var(--accent);color:var(--on-accent);border-color:transparent">Save</button></div>
+  </div>
+</div>
 
 <script>
-  const $ = (id) => document.getElementById(id);
-  const ICONS = {
-    ready: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 2.5"/></svg>',
-    busy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.2-8.6"/></svg>',
-    done: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>',
-    error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg>',
+{
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const I = {
+  minus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+  chev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>',
+  up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>',
+  down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>',
+  trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>',
+  target: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5"/></svg>',
+  play: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"/></svg>',
+  stop: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>',
+};
+
+// ---------- backend bridge (with an in-browser preview) ----------
+const T = window.__TAURI__;
+const handlers = {};
+const fire = (ev, payload) => (handlers[ev] || []).forEach(f => f({ payload }));
+const mock = (() => {
+  let st = { presets: [{ id: "p1", name: "New leads", steps: [{ kind: "click", x: 812, y: 244, button: "left", key: "Enter", mods: [], text: "", secs: 1, delay: .3, travel_ms: 0 }, { kind: "key", x: null, y: null, button: "left", key: "Enter", mods: [], text: "", secs: 1, delay: .3, travel_ms: 0 }], rounds: 2, round_wait: 2, watch: { x: null, y: null, color: null, tolerance: 12, cooldown: 10 } }], active: "p1", hotkey: "F8", sound: true, notify: true, tray_on_close: true, corner_stop: true };
+  let log = [], running = false, stopF = false, watching = false;
+  return {
+    get_all: async () => ({ settings: structuredClone(st), platform: "preview", version: "1.1.0", autostart: false, running, watching, log, hotkey_ok: true }),
+    save_settings: async ({ settings }) => { st = structuredClone(settings); return structuredClone(st); },
+    capture_position: async () => [640 + Math.round(Math.random() * 300), 200 + Math.round(Math.random() * 200)],
+    capture_color: async () => ({ x: 812, y: 244, color: [212, 70, 60] }),
+    sample_color: async () => [212, 70, 60],
+    run: async () => {
+      const p = st.presets.find(p => p.id === st.active); if (running) return; running = true; stopF = false;
+      let d = 0;
+      for (let r = 0; r < p.rounds && !stopF; r++) { fire("progress", { kind: "busy", text: `Round ${r + 1} of ${p.rounds} · step 1`, done: d, total: p.rounds, finished: false }); await new Promise(z => setTimeout(z, 700)); d++; }
+      running = false; log.push({ at: Date.now(), preset: p.name, trigger: "manual", done: d, total: p.rounds, result: stopF ? "stopped" : "done" });
+      fire("progress", { kind: stopF ? "error" : "done", text: stopF ? `Stopped after ${d} of ${p.rounds}` : "Done", done: d, total: p.rounds, finished: true }); fire("log");
+    },
+    stop: async () => { stopF = true; },
+    set_watch: async ({ on }) => { watching = on; fire("watch", on ? { on: true, state: "armed", text: "Watching for the trigger color", color: [40, 60, 90], matched: false } : { on: false, state: "off", text: "Watch is off", color: null, matched: false }); },
+    set_autostart: async ({ on }) => on, clear_log: async () => { log = []; }, open_url: async () => {},
   };
-  const PLAY = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"/></svg>';
-  const STOP = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
+})();
+const call = (cmd, args = {}) => T ? T.core.invoke(cmd, args) : mock[cmd](args);
+const on = (ev, f) => T ? T.event.listen(ev, f) : (handlers[ev] = handlers[ev] || []).push(f);
 
-  const LIMITS = { count: [1, 999, 1], wait: [0, 600, 0.5] };
-  let running = false, picking = false, hasPos = false;
+// ---------- state ----------
+let S = null, plat = "win", ver = "1.1.0", running = false, watching = false, LOG = [], picking = false;
+const P = () => S.presets.find(p => p.id === S.active) || S.presets[0];
+const KEYS = ["Enter", "Tab", "Space", "Escape", "Backspace", "Delete", "Up", "Down", "Left", "Right", "Home", "End", "PageUp", "PageDown",
+  ...Array.from({ length: 12 }, (_, i) => "F" + (i + 1)), ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".split("")];
+const FKEYS = Array.from({ length: 12 }, (_, i) => "F" + (i + 1));
+const modLabel = m => m === "Cmd" ? (plat === "mac" ? "Cmd" : "Win") : m === "Alt" && plat === "mac" ? "Option" : m;
+const LIMITS = { rounds: [1, 999, 1, 0], round_wait: [0, 600, .5, 1], tolerance: [1, 100, 1, 0], cooldown: [1, 3600, 1, 0], delay: [0, 60, .1, 1], secs: [0, 600, .5, 1], travel_ms: [0, 5000, 50, 0] };
+const clampV = (k, v) => { const [mn, mx, , dp] = LIMITS[k]; v = parseFloat(String(v).replace(",", ".")); if (isNaN(v)) v = mn; v = Math.min(mx, Math.max(mn, v)); return dp ? Math.round(v * 10) / 10 : Math.round(v); };
 
-  // Tauri bridge, with a preview fallback for a normal browser.
-  const T = window.__TAURI__;
-  const api = T ? {
-    get_state: () => T.core.invoke("get_state"),
-    capture_position: async () => { const [x, y] = await T.core.invoke("capture_position"); return { x, y }; },
-    save: (count, wait) => T.core.invoke("save", { count, wait }),
-    start: (count, wait) => T.core.invoke("start", { count, wait }),
-    stop: () => T.core.invoke("stop"),
-  } : {
-    get_state: async () => ({ x: null, y: null, count: 2, wait: 2, platform: "preview", version: "1.0.0" }),
-    capture_position: async () => ({ x: 812, y: 244 }),
-    save: async () => {}, start: async () => {}, stop: async () => {},
+let saveTimer = null;
+function save(now) {
+  clearTimeout(saveTimer);
+  const go = async () => { try { const r = await call("save_settings", { settings: S }); S = r; } catch (e) { S = (await call("get_all")).settings; toast(String(e)); render(); } };
+  if (now) return go(); saveTimer = setTimeout(go, 250);
+}
+function toast(msg) { $("hkHint").textContent = msg; $("hkHint").className = "hint err-text"; }
+
+// ---------- dropdown (listbox) ----------
+function dropdown(host, { label, items, value, onPick, align }) {
+  const id = host.id + "-lb";
+  const cur = items.find(i => i.value === value);
+  host.innerHTML = `<button type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="${esc(label)}"><span>${esc(cur ? cur.label : value)}</span>${I.chev}</button>`;
+  const btn = host.firstElementChild;
+  let ul = null, idx = 0, typed = "", typedAt = 0;
+  const close = (focus = true) => { if (!ul) return; ul.remove(); ul = null; btn.setAttribute("aria-expanded", "false"); if (focus) btn.focus(); document.removeEventListener("pointerdown", outside, true); };
+  const outside = e => { if (!host.contains(e.target)) close(false); };
+  const paint = () => ul.querySelectorAll("li").forEach((li, i) => { li.classList.toggle("active", i === idx); if (i === idx) { li.scrollIntoView({ block: "nearest" }); ul.setAttribute("aria-activedescendant", li.id); } });
+  const pick = i => { const it = items[i]; close(); onPick(it.value); };
+  const open = () => {
+    ul = document.createElement("ul"); ul.id = id; ul.setAttribute("role", "listbox"); ul.tabIndex = -1; ul.setAttribute("aria-label", label);
+    ul.innerHTML = items.map((it, i) => `<li role="option" id="${id}-${i}" class="${it.sep ? "sep" : ""}" aria-selected="${it.value === value}">${esc(it.label)}${it.note ? `<span class="muted">${esc(it.note)}</span>` : ""}</li>`).join("");
+    host.appendChild(ul); btn.setAttribute("aria-expanded", "true");
+    idx = Math.max(0, items.findIndex(i => i.value === value)); paint(); ul.focus();
+    ul.addEventListener("click", e => { const li = e.target.closest("li"); if (li) pick([...ul.children].indexOf(li)); });
+    ul.addEventListener("keydown", e => {
+      if (e.key === "ArrowDown") { idx = Math.min(items.length - 1, idx + 1); paint(); e.preventDefault(); }
+      else if (e.key === "ArrowUp") { idx = Math.max(0, idx - 1); paint(); e.preventDefault(); }
+      else if (e.key === "Home") { idx = 0; paint(); e.preventDefault(); }
+      else if (e.key === "End") { idx = items.length - 1; paint(); e.preventDefault(); }
+      else if (e.key === "Enter" || e.key === " ") { pick(idx); e.preventDefault(); }
+      else if (e.key === "Escape" || e.key === "Tab") { close(e.key === "Escape"); e.stopPropagation(); }
+      else if (e.key.length === 1) { const t = Date.now(); typed = (t - typedAt < 700 ? typed : "") + e.key.toLowerCase(); typedAt = t; const f = items.findIndex(i => i.label.toLowerCase().startsWith(typed)); if (f >= 0) { idx = f; paint(); } }
+    });
+    document.addEventListener("pointerdown", outside, true);
   };
+  btn.addEventListener("click", () => ul ? close() : open());
+  btn.addEventListener("keydown", e => { if (e.key === "ArrowDown" || e.key === "ArrowUp") { open(); e.preventDefault(); } });
+}
 
-  function clampField(name) {
-    const [min, max] = LIMITS[name];
-    let v = parseFloat($(name).value.replace(",", "."));
-    if (isNaN(v)) v = name === "count" ? 2 : 2;
-    v = Math.min(max, Math.max(min, v));
-    if (name === "count") v = Math.round(v);
-    $(name).value = String(v);
-    return v;
-  }
-  function persist() {
-    api.save(clampField("count"), clampField("wait"));
-    if (!running) $("statusCount").textContent = `0 / ${clampField("count")}`;
-  }
+// ---------- stepper ----------
+function stepper(host, key, get, set) {
+  const v = get();
+  const inputId = host.dataset.field ? key : "";
+  host.innerHTML = `<button type="button" aria-label="Less" data-d="-1">${I.minus}</button><input ${inputId ? `id="${inputId}"` : ""} type="text" inputmode="decimal" value="${v}" aria-label="${esc(host.dataset.label || key)}"><button type="button" aria-label="More" data-d="1">${I.plus}</button>`;
+  const inp = host.querySelector("input");
+  const commit = val => { const c = clampV(key, val); inp.value = c; set(c); save(); };
+  host.querySelectorAll("button").forEach(b => b.addEventListener("click", () => commit(clampV(key, inp.value) + LIMITS[key][2] * +b.dataset.d)));
+  inp.addEventListener("change", () => commit(inp.value));
+  inp.addEventListener("keydown", e => { if (e.key === "Enter") inp.blur(); });
+}
 
-  function setStatus(kind, text, done, total) {
-    const el = $("statusText");
-    el.className = "status-text" + (kind === "error" ? " is-error" : kind === "done" ? " is-done" : "");
-    el.innerHTML = ICONS[kind] + `<span>${text}</span>`;
-    if (total != null) {
-      $("statusCount").textContent = `${done} / ${total}`;
-      $("bar").style.width = total ? `${(done / total) * 100}%` : "0";
-    }
-  }
-
-  function setCoords(x, y) {
-    hasPos = x != null;
-    const c = $("coords");
-    c.className = "coords" + (hasPos ? "" : " empty");
-    c.textContent = hasPos ? `${x}, ${y}` : "Not set yet";
-    $("pickLabel").textContent = hasPos ? "Change" : "Set position";
-  }
-
-  function setRunning(on) {
-    running = on;
-    const b = $("runBtn");
-    b.classList.toggle("stop", on);
-    b.innerHTML = (on ? STOP : PLAY) + `<span>${on ? "Stop" : "Run"}</span>`;
-    $("pickBtn").disabled = on;
-    document.querySelectorAll(".stepper button, .stepper input").forEach(e => e.disabled = on);
-  }
-
-  if (T) {
-    T.event.listen("progress", ({ payload: p }) => {
-      setStatus(p.kind, p.text, p.done, p.total);
-      if (p.finished) setRunning(false);
-    });
-    T.event.listen("hotkey", () => { if (!picking) $("runBtn").click(); });
-  }
-
-  $("pickBtn").addEventListener("click", async () => {
-    if (picking || running) return;
-    picking = true;
-    $("pickBtn").disabled = true; $("runBtn").disabled = true;
-    for (const n of [3, 2, 1]) {
-      setStatus("busy", `Hold the mouse on the spot... ${n}`);
-      await new Promise(r => setTimeout(r, 1000));
-    }
-    try {
-      const p = await api.capture_position();
-      setCoords(p.x, p.y);
-      setStatus("done", "Position saved", 0, clampField("count"));
-    } catch (e) {
-      setStatus("error", String(e));
-    }
-    $("pickBtn").disabled = false; $("runBtn").disabled = false;
-    picking = false;
+// ---------- render ----------
+function stepSummary(s) {
+  if (s.kind === "click") return s.x == null ? "Click (spot not set)" : `${s.button === "right" ? "Right-click" : s.button === "double" ? "Double-click" : "Click"} ${s.x}, ${s.y}`;
+  if (s.kind === "key") return [...s.mods.map(modLabel), s.key].join(" + ");
+  if (s.kind === "text") return s.text ? `Type "${s.text.length > 18 ? s.text.slice(0, 18) + "..." : s.text}"` : "Type (empty)";
+  return `Wait ${s.secs} sec`;
+}
+function render() {
+  const p = P();
+  dropdown($("presetDD"), {
+    label: "Preset", value: p.id,
+    items: [...S.presets.map(x => ({ value: x.id, label: x.name })), { value: "@new", label: "New preset", sep: true }, { value: "@dup", label: "Duplicate" }, { value: "@ren", label: "Rename" }, ...(S.presets.length > 1 ? [{ value: "@del", label: "Delete this preset" }] : [])],
+    onPick: presetAction,
   });
-
-  $("runBtn").addEventListener("click", async () => {
-    if (picking) return;
-    if (running) { api.stop(); return; }
-    if (!hasPos) { setStatus("error", "Set the button position first"); return; }
-    const count = clampField("count"), wait = clampField("wait");
-    persist();
-    setRunning(true);
-    setStatus("busy", "Starting...", 0, count);
-    try { await api.start(count, wait); }
-    catch (e) { setStatus("error", String(e)); setRunning(false); }
+  $("summary").innerHTML = p.steps.length ? p.steps.map(s => esc(stepSummary(s))).join(' <span aria-hidden="true">&rarr;</span> ') : "No steps yet";
+  stepper(document.querySelector('[data-field=rounds]'), "rounds", () => p.rounds, v => p.rounds = v);
+  stepper(document.querySelector('[data-field=round_wait]'), "round_wait", () => p.round_wait, v => p.round_wait = v);
+  stepper(document.querySelector('[data-field=tolerance]'), "tolerance", () => p.watch.tolerance, v => p.watch.tolerance = v);
+  stepper(document.querySelector('[data-field=cooldown]'), "cooldown", () => p.watch.cooldown, v => p.watch.cooldown = v);
+  renderSteps(); renderWatchSetup(); renderSettings(); renderRun(); renderLog();
+}
+function renderRun() {
+  const b = $("runBtn");
+  b.classList.toggle("stop", running);
+  b.innerHTML = running ? `${I.stop}<span>Stop</span>` : `${I.play}<span>Run ${esc(P().name)}</span>`;
+  if (!running && !$("stCount").textContent) $("stCount").textContent = `0 / ${P().rounds}`;
+  $("watchQuick").setAttribute("aria-checked", watching);
+  $("foot").innerHTML = `<kbd>${esc(S.hotkey.replace(/\+/g, " + "))}</kbd> run or stop · <kbd>Esc</kbd> stop everything` + (plat === "mac" && /^F\d/.test(S.hotkey) ? " · Mac keyboard: hold fn" : "");
+}
+function setStatus(kind, text, done, total) {
+  $("dot").className = "dot " + (kind === "busy" ? "busy" : kind === "done" ? "ok" : kind === "error" ? "err" : "");
+  $("stText").textContent = text; $("stText").className = kind === "error" ? "err-text" : "";
+  if (total) { $("stCount").textContent = `${done} / ${total}`; $("bar").style.width = `${done / total * 100}%`; }
+}
+function renderSteps() {
+  const p = P();
+  $("stepList").innerHTML = p.steps.map((s, i) => `
+    <div class="step" data-i="${i}">
+      <div class="step-h"><span class="num">${i + 1}</span>
+        <div class="seg" role="group" aria-label="Step ${i + 1} type">${["click", "key", "text", "wait"].map(k => `<button type="button" data-kind="${k}" aria-pressed="${s.kind === k}">${{ click: "Click", key: "Key", text: "Type", wait: "Wait" }[k]}</button>`).join("")}</div>
+        <div class="step-actions"><button class="btn icon ghost" type="button" data-act="up" aria-label="Move step ${i + 1} up" ${i === 0 ? "disabled" : ""}>${I.up}</button><button class="btn icon ghost" type="button" data-act="down" aria-label="Move step ${i + 1} down" ${i === p.steps.length - 1 ? "disabled" : ""}>${I.down}</button><button class="btn icon ghost danger" type="button" data-act="del" aria-label="Delete step ${i + 1}">${I.trash}</button></div>
+      </div>
+      ${s.kind === "click" ? `
+        <div class="row"><b class="big" style="font-size:18px">${s.x == null ? '<span class="muted" style="font-size:14px;font-weight:500">Spot not set</span>' : `${s.x}, ${s.y}`}</b><button class="btn sm" type="button" data-act="pick">${I.target}<span>${s.x == null ? "Set spot" : "Change"}</span></button></div>
+        <div class="seg" role="group" aria-label="Mouse button">${["left", "right", "double"].map(k => `<button type="button" data-btn="${k}" aria-pressed="${s.button === k}">${{ left: "Left", right: "Right", double: "Double" }[k]}</button>`).join("")}</div>
+        <div class="two"><div><span class="label">Mouse travel</span><div class="stepper" data-k="travel_ms" data-label="Mouse travel in milliseconds"></div><div class="unit">ms to reach the spot (0 = jump)</div></div><div><span class="label">Pause after</span><div class="stepper" data-k="delay" data-label="Pause after, seconds"></div><div class="unit">seconds</div></div></div>` : ""}
+      ${s.kind === "key" ? `
+        <div class="dd" data-keydd></div>
+        <div class="chips" role="group" aria-label="Hold with">${["Ctrl", "Shift", "Alt", "Cmd"].map(m => `<button type="button" class="chip" data-mod="${m}" aria-pressed="${s.mods.includes(m)}">${modLabel(m)}</button>`).join("")}</div>
+        <div><span class="label">Pause after</span><div class="stepper" data-k="delay" data-label="Pause after, seconds"></div></div>` : ""}
+      ${s.kind === "text" ? `
+        <input class="field" data-text value="${esc(s.text)}" placeholder="Text to type" aria-label="Text to type">
+        <div><span class="label">Pause after</span><div class="stepper" data-k="delay" data-label="Pause after, seconds"></div></div>` : ""}
+      ${s.kind === "wait" ? `<div><span class="label">Wait</span><div class="stepper" data-k="secs" data-label="Wait, seconds"></div><div class="unit">seconds</div></div>` : ""}
+      <p class="hint" data-pickhint hidden></p>
+    </div>`).join("") || '<p class="hint">No steps. Add one below.</p>';
+  $("stepList").querySelectorAll(".step").forEach(el => {
+    const i = +el.dataset.i, s = p.steps[i];
+    el.querySelectorAll("[data-k]").forEach(h => stepper(h, h.dataset.k, () => s[h.dataset.k], v => { s[h.dataset.k] = v; refreshSummary(); }));
+    const kd = el.querySelector("[data-keydd]");
+    if (kd) { kd.id = "keydd" + i; dropdown(kd, { label: `Key for step ${i + 1}`, value: s.key, items: KEYS.map(k => ({ value: k, label: k })), onPick: v => { s.key = v; save(); renderSteps(); refreshSummary(); } }); }
   });
+}
+function refreshSummary() { $("summary").innerHTML = P().steps.map(s => esc(stepSummary(s))).join(' <span aria-hidden="true">&rarr;</span> ') || "No steps yet"; }
 
-  document.querySelectorAll("[data-step]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const name = btn.dataset.step, [, , step] = LIMITS[name];
-      $(name).value = String(clampField(name) + step * Number(btn.dataset.dir));
-      persist();
-    });
-  });
-  ["count", "wait"].forEach(id => {
-    $(id).addEventListener("change", persist);
-    $(id).addEventListener("keydown", e => { if (e.key === "Enter") e.target.blur(); });
-  });
+$("stepList").addEventListener("click", async e => {
+  const el = e.target.closest(".step"); if (!el) return;
+  const i = +el.dataset.i, p = P(), s = p.steps[i], b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.kind) { s.kind = b.dataset.kind; }
+  else if (b.dataset.btn) { s.button = b.dataset.btn; }
+  else if (b.dataset.mod) { const m = b.dataset.mod; s.mods = s.mods.includes(m) ? s.mods.filter(x => x !== m) : [...s.mods, m]; }
+  else if (b.dataset.act === "up" && i > 0) { [p.steps[i - 1], p.steps[i]] = [p.steps[i], p.steps[i - 1]]; }
+  else if (b.dataset.act === "down" && i < p.steps.length - 1) { [p.steps[i + 1], p.steps[i]] = [p.steps[i], p.steps[i + 1]]; }
+  else if (b.dataset.act === "del") { p.steps.splice(i, 1); }
+  else if (b.dataset.act === "pick") { await pickSpot(el, s); return; }
+  else return;
+  save(); renderSteps(); refreshSummary();
+});
+$("stepList").addEventListener("input", e => { if (e.target.dataset.text !== undefined) { const i = +e.target.closest(".step").dataset.i; P().steps[i].text = e.target.value; refreshSummary(); save(); } });
+$("addStep").addEventListener("click", () => {
+  const p = P(); const last = p.steps[p.steps.length - 1];
+  p.steps.push({ kind: last && last.kind === "click" ? "key" : "click", x: null, y: null, button: "left", key: "Enter", mods: [], text: "", secs: 1, delay: .3, travel_ms: 0 });
+  save(); renderSteps(); refreshSummary();
+  $("stepList").lastElementChild?.scrollIntoView({ block: "nearest" });
+});
+async function countdown(set, what) { for (const n of [3, 2, 1]) { set(`Hold the mouse on ${what}... ${n}`); await new Promise(r => setTimeout(r, 1000)); } }
+async function pickSpot(el, s) {
+  if (picking) return; picking = true;
+  const h = el.querySelector("[data-pickhint]"); h.hidden = false; h.className = "hint";
+  try { await countdown(t => h.textContent = t, "the spot"); const [x, y] = await call("capture_position"); s.x = x; s.y = y; if (P().watch.x == null) { /* keep watch independent */ } save(); renderSteps(); refreshSummary(); }
+  catch (e) { h.textContent = String(e); h.className = "hint err-text"; }
+  picking = false;
+}
 
-  async function init() {
-    const s = await api.get_state();
-    setCoords(s.x, s.y);
-    $("count").value = s.count; $("wait").value = s.wait;
-    $("statusCount").textContent = `0 / ${s.count}`;
-    $("foot").innerHTML = 'Press <kbd>F8</kbd> from any window to run or stop.' +
-      (s.platform === "mac" ? ' On a Mac keyboard: <kbd>fn</kbd> + <kbd>F8</kbd>.' : '');
-  }
-  init();
+// ---------- watch ----------
+const rgb = c => c ? `rgb(${c[0]},${c[1]},${c[2]})` : "";
+const hex = c => c ? "#" + c.map(v => v.toString(16).padStart(2, "0")).join("").toUpperCase() : "";
+function renderWatchSetup() {
+  const w = P().watch;
+  $("trigSw").style.background = w.color ? rgb(w.color) : "";
+  $("trigText").textContent = w.color ? hex(w.color) : "Not set yet";
+  $("trigPos").textContent = w.x != null ? `at ${w.x}, ${w.y}` : "";
+  $("setTrig").textContent = w.color ? "Set again" : "Set from screen";
+  $("watchBtn").textContent = watching ? "Stop watching" : "Start watching";
+  $("watchBtn").classList.toggle("stop", watching);
+  $("macWatchNote").hidden = plat !== "mac";
+}
+$("setTrig").addEventListener("click", async () => {
+  if (picking) return; picking = true; $("setTrig").disabled = true;
+  try { await countdown(t => { $("trigHint").textContent = t; $("trigHint").className = "hint"; }, "the button"); const r = await call("capture_color"); Object.assign(P().watch, { x: r.x, y: r.y, color: r.color }); await save(true); $("trigHint").textContent = "Saved. Turn Watch on whenever you're ready."; $("trigHint").className = "hint ok-text"; renderWatchSetup(); }
+  catch (e) { $("trigHint").textContent = String(e); $("trigHint").className = "hint err-text"; }
+  $("setTrig").disabled = false; picking = false;
+});
+async function toggleWatch() {
+  try { await save(true); await call("set_watch", { on: !watching }); }
+  catch (e) { setWatchStatus({ on: false, state: "error", text: String(e) }); }
+}
+$("watchBtn").addEventListener("click", toggleWatch);
+$("watchQuick").addEventListener("click", toggleWatch);
+function setWatchStatus(w) {
+  watching = !!w.on;
+  $("wDot").className = "dot " + (w.state === "armed" ? "ok" : w.state === "running" ? "busy" : w.state === "error" ? "err" : w.on ? "busy" : "");
+  $("wText").textContent = w.text; $("wText").className = w.state === "error" ? "err-text" : "";
+  $("watchQuickText").textContent = w.on ? w.text : w.state === "error" ? w.text : "Starts the run when the button changes color";
+  $("watchQuickText").className = w.state === "error" ? "hint err-text" : "hint";
+  if (w.color) { $("liveSw").style.background = rgb(w.color); $("liveText").textContent = w.matched ? "Matches the trigger" : "Doesn't match"; $("liveText").className = w.matched ? "ok-text" : "muted"; }
+  renderWatchSetup(); renderRun();
+}
+// live preview while the Watch tab is open and Watch is off
+setInterval(async () => {
+  if ($("watch").hidden || watching || picking) return;
+  const w = P().watch; if (w.x == null) return;
+  try { const c = await call("sample_color", { x: w.x, y: w.y }); const m = w.color && Math.hypot(c[0] - w.color[0], c[1] - w.color[1], c[2] - w.color[2]) / 441.673 <= w.tolerance / 100 * .5; $("liveSw").style.background = rgb(c); $("liveText").textContent = m ? "Matches the trigger" : "Doesn't match"; $("liveText").className = m ? "ok-text" : "muted"; }
+  catch (e) { $("liveText").textContent = String(e); $("liveText").className = "err-text"; }
+}, 600);
+
+// ---------- run ----------
+$("runBtn").addEventListener("click", async () => {
+  if (running) { call("stop"); return; }
+  await save(true);
+  try { running = true; renderRun(); setStatus("busy", "Starting...", 0, P().rounds); await call("run"); }
+  catch (e) { running = false; renderRun(); setStatus("error", String(e)); }
+});
+document.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => selectTab(b.dataset.go)));
+
+// ---------- log ----------
+function renderLog() {
+  const start = new Date(); start.setHours(0, 0, 0, 0);
+  const today = LOG.filter(e => e.at >= start.getTime());
+  const last = today[today.length - 1];
+  const hm = t => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  $("todayText").textContent = today.length ? `Today: ${today.length} run${today.length > 1 ? "s" : ""} · last at ${hm(last.at)}` : "Today: no runs yet";
+  const trig = { manual: "Button", hotkey: "Key", watch: "Watch" };
+  $("log").innerHTML = LOG.slice(-25).reverse().map(e => `<div class="log-r"><span>${hm(e.at)}</span><span>${esc(e.preset)} · ${trig[e.trigger] || esc(e.trigger)}</span><span class="${e.result === "done" ? "" : "err-text"}">${e.result === "done" ? `${e.done} of ${e.total}` : e.result === "stopped" ? `Stopped ${e.done}/${e.total}` : "Error"}</span></div>`).join("") || '<p class="hint">Runs will show up here.</p>';
+  $("clearLog").hidden = !LOG.length;
+}
+$("clearLog").addEventListener("click", async () => { await call("clear_log"); LOG = []; renderLog(); });
+
+// ---------- presets ----------
+let dlgResolve = null;
+function ask(title, value, okLabel = "Save", message = "") {
+  $("dlgTitle").textContent = title; $("dlgInput").value = value; $("dlgInput").hidden = value === null; $("dlgMsg").textContent = message; $("dlgOk").textContent = okLabel; $("dlg").hidden = false;
+  setTimeout(() => (value === null ? $("dlgOk") : $("dlgInput")).focus(), 0);
+  return new Promise(r => dlgResolve = r);
+}
+const closeDlg = v => { $("dlg").hidden = true; dlgResolve && dlgResolve(v); dlgResolve = null; };
+$("dlgCancel").addEventListener("click", () => closeDlg(undefined));
+$("dlgOk").addEventListener("click", () => closeDlg($("dlgInput").hidden ? true : $("dlgInput").value.trim()));
+$("dlg").addEventListener("keydown", e => { if (e.key === "Escape") closeDlg(undefined); if (e.key === "Enter" && e.target === $("dlgInput")) $("dlgOk").click(); if (e.key === "Tab") { const f = [...$("dlg").querySelectorAll("input:not([hidden]),button")]; const i = f.indexOf(document.activeElement); if (e.shiftKey && i <= 0) { f[f.length - 1].focus(); e.preventDefault(); } else if (!e.shiftKey && i === f.length - 1) { f[0].focus(); e.preventDefault(); } } });
+const newId = () => "p" + Date.now().toString(36);
+async function presetAction(v) {
+  const p = P();
+  if (v === "@new") { const n = await ask("New preset name", "My preset"); if (!n) return; const np = { id: newId(), name: n.slice(0, 40), steps: [{ kind: "click", x: null, y: null, button: "left", key: "Enter", mods: [], text: "", secs: 1, delay: .3, travel_ms: 0 }, { kind: "key", x: null, y: null, button: "left", key: "Enter", mods: [], text: "", secs: 1, delay: .3, travel_ms: 0 }], rounds: 2, round_wait: 2, watch: { x: null, y: null, color: null, tolerance: 12, cooldown: 10 } }; S.presets.push(np); S.active = np.id; }
+  else if (v === "@dup") { const np = structuredClone(p); np.id = newId(); np.name = (p.name + " copy").slice(0, 40); S.presets.push(np); S.active = np.id; }
+  else if (v === "@ren") { const n = await ask("Rename preset", p.name); if (!n) return; p.name = n.slice(0, 40); }
+  else if (v === "@del") { const ok = await ask(`Delete "${p.name}"?`, null, "Delete", "Its steps and Watch setup will be removed."); if (!ok) return; S.presets = S.presets.filter(x => x.id !== p.id); S.active = S.presets[0].id; }
+  else { if (v === S.active) return; S.active = v; $("stCount").textContent = ""; setStatus("", "Ready", 0, 0); $("bar").style.width = "0"; }
+  await save(true); render();
+}
+
+// ---------- settings ----------
+function renderSettings() {
+  document.querySelectorAll("[data-set]").forEach(b => b.setAttribute("aria-checked", !!S[b.dataset.set]));
+  const parts = S.hotkey.split("+"), key = parts.pop(), mods = parts;
+  $("hkMods").innerHTML = ["Ctrl", "Shift", "Alt"].map(m => `<button type="button" class="chip" data-hk="${m}" aria-pressed="${mods.includes(m)}">${modLabel(m)}</button>`).join("");
+  dropdown($("hkDD"), { label: "Start and stop key", value: key, items: FKEYS.map(k => ({ value: k, label: k })), onPick: k => setHotkey([...mods, k].join("+")) });
+  $("hkHint").className = "hint";
+  $("hkHint").textContent = plat === "mac" ? "On a Mac keyboard, hold fn with the F key, or turn on \"Use F1, F2 as standard function keys\" in Keyboard settings." : "Works from any window.";
+  $("ver").textContent = "version " + ver;
+  $("trayHint").textContent = plat === "mac" ? "Closing the window hides it. Quit from the menu bar icon." : "Closing the window hides it. Quit from the tray icon.";
+}
+async function setHotkey(text) { const old = S.hotkey; S.hotkey = text; try { S = await call("save_settings", { settings: S }); renderSettings(); renderRun(); } catch (e) { S.hotkey = old; renderSettings(); toast(String(e)); } }
+$("hkMods").addEventListener("click", e => { const b = e.target.closest("[data-hk]"); if (!b) return; const parts = S.hotkey.split("+"), key = parts.pop(); const m = b.dataset.hk; const mods = parts.includes(m) ? parts.filter(x => x !== m) : [...parts, m]; setHotkey([...["Ctrl", "Shift", "Alt"].filter(x => mods.includes(x)), key].join("+")); });
+document.querySelectorAll("[data-set]").forEach(b => b.addEventListener("click", () => { const k = b.dataset.set; S[k] = !S[k]; b.setAttribute("aria-checked", S[k]); save(); }));
+$("autostart").addEventListener("click", async () => { const want = $("autostart").getAttribute("aria-checked") !== "true"; try { const r = await call("set_autostart", { on: want }); $("autostart").setAttribute("aria-checked", r); } catch (e) { $("updMsg").textContent = String(e); $("updMsg").className = "hint err-text"; } });
+
+// ---------- updates ----------
+const newer = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
+let updUrl = "https://github.com/HanyJr/tapline/releases/latest";
+async function checkUpdates(manual) {
+  try {
+    const r = await fetch("https://api.github.com/repos/HanyJr/tapline/releases/latest", { headers: { Accept: "application/vnd.github+json" } });
+    if (!r.ok) throw new Error("no release");
+    const j = await r.json(); const latest = String(j.tag_name || "").replace(/^v/, "");
+    if (latest && newer(latest, ver)) { updUrl = j.html_url || updUrl; $("updateText").textContent = `Tapline ${latest} is available`; $("update").hidden = false; if (manual) { $("updMsg").textContent = `Version ${latest} is available.`; $("updMsg").className = "hint ok-text"; } }
+    else if (manual) { $("updMsg").textContent = "You have the latest version."; $("updMsg").className = "hint"; }
+  } catch { if (manual) { $("updMsg").textContent = "Couldn't check right now. Try again later."; $("updMsg").className = "hint err-text"; } }
+}
+$("updateBtn").addEventListener("click", () => call("open_url", { url: updUrl }));
+$("checkUpd").addEventListener("click", () => checkUpdates(true));
+
+// ---------- tabs ----------
+const TABS = ["run", "steps", "watch", "settings"];
+function selectTab(name) { TABS.forEach(t => { const on = t === name; $("tab-" + t).setAttribute("aria-selected", on); $("tab-" + t).tabIndex = on ? 0 : -1; $(t).hidden = !on; }); document.querySelector("main").scrollTop = 0; }
+TABS.forEach(t => $("tab-" + t).addEventListener("click", () => selectTab(t)));
+document.querySelector("nav").addEventListener("keydown", e => {
+  const i = TABS.findIndex(t => $("tab-" + t).getAttribute("aria-selected") === "true");
+  let n = null; if (e.key === "ArrowRight") n = (i + 1) % TABS.length; if (e.key === "ArrowLeft") n = (i + TABS.length - 1) % TABS.length; if (e.key === "Home") n = 0; if (e.key === "End") n = TABS.length - 1;
+  if (n !== null) { selectTab(TABS[n]); $("tab-" + TABS[n]).focus(); e.preventDefault(); }
+});
+
+// ---------- events from the app ----------
+on("progress", ({ payload: p }) => { setStatus(p.kind, p.text, p.done, p.total); if (p.finished) { running = false; renderRun(); } else if (!running) { running = true; renderRun(); } });
+on("watch", ({ payload }) => setWatchStatus(payload));
+on("log", async () => { LOG = (await call("get_all")).log; renderLog(); });
+on("fired", () => { if (S.sound) chime(); });
+function chime() {
+  try { const a = new (window.AudioContext || window.webkitAudioContext)(); [[880, 0], [1320, .14]].forEach(([f, t]) => { const o = a.createOscillator(), g = a.createGain(); o.frequency.value = f; o.type = "sine"; g.gain.setValueAtTime(.0001, a.currentTime + t); g.gain.exponentialRampToValueAtTime(.25, a.currentTime + t + .02); g.gain.exponentialRampToValueAtTime(.0001, a.currentTime + t + .35); o.connect(g).connect(a.destination); o.start(a.currentTime + t); o.stop(a.currentTime + t + .4); }); setTimeout(() => a.close(), 900); } catch {}
+}
+
+// ---------- start ----------
+(async () => {
+  const all = await call("get_all");
+  S = all.settings; plat = all.platform; ver = all.version; running = all.running; watching = all.watching; LOG = all.log;
+  $("autostart").setAttribute("aria-checked", all.autostart);
+  render(); setWatchStatus({ on: watching, state: watching ? "armed" : "off", text: watching ? "Watching for the trigger color" : "Watch is off" });
+  if (!all.hotkey_ok) { toast(`${S.hotkey} couldn't be set up. Pick another key here.`); }
+  checkUpdates(false); setInterval(() => checkUpdates(false), 6 * 3600 * 1000);
+})();
+}
 </script>
 </body>
 </html>

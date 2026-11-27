@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Tapline",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "identifier": "space.iantbc.tapline",
   "build": {
     "frontendDist": "../ui"
@@ -11,27 +11,32 @@
     "windows": [
       {
         "title": "Tapline",
-        "width": 420,
-        "height": 640,
-        "minWidth": 360,
-        "minHeight": 600,
+        "width": 440,
+        "height": 720,
+        "minWidth": 380,
+        "minHeight": 560,
         "resizable": true,
         "alwaysOnTop": true,
         "center": true,
-        "backgroundColor": "#0a1422"
+        "backgroundColor": "#0a1422",
+        "label": "main"
       }
     ],
     "security": {
-      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:"
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost https://api.github.com"
     }
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis", "dmg", "app"],
+    "targets": [
+      "nsis",
+      "dmg",
+      "app"
+    ],
     "category": "Productivity",
     "shortDescription": "Repeat a click and Enter, as many times as you need",
-    "longDescription": "Tapline clicks a spot you choose, presses Enter, waits, and repeats as many times as you set. Start and stop with one key.",
-    "copyright": "Copyright 2026 Ian Brown",
+    "longDescription": "Tapline runs a sequence of clicks and keys, repeats it as many times as you set, and can start on its own when a button on screen changes color.",
+    "copyright": "Copyright 2026 HanyJr",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

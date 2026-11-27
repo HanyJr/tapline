@@ -4,120 +4,344 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tapline - Click. Enter. Repeat.</title>
-<meta name="description" content="Tapline clicks a spot you choose, presses Enter, waits, and repeats as many times as you set. Free for Windows and Mac.">
-<link rel="icon" href="logo.png">
+<meta name="description" content="Tapline clicks the spot you choose, presses Enter, waits, and repeats as many times as you set. Free for Windows and Mac.">
+<link rel="icon" href="data:image/png;base64,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">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #0a1422; --surface: #0e1b2c; --raised: #15263c;
-    --border: color-mix(in srgb, #a9b6c6 16%, transparent);
-    --text: #e7ecf2; --muted: #a9b6c6; --accent: #d4a84b; --accent-hover: #e0b85c; --on-accent: #0a1422;
-    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
-  }
-  * { box-sizing: border-box; margin: 0; }
-  body { background: var(--bg); color: var(--text); font: 16px/1.6 var(--font); -webkit-font-smoothing: antialiased; }
-  a { color: inherit; }
-  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+/* VOICE: calm, precise product page; the app speaks for itself.
+   IDEA: the page behaves like the Tapline window doing its job.
+   PICTURE: a live stage - a work screen with a button, the cursor clicking it, Enter firing, the Tapline window counting.
+   COLOUR and TYPE: the app's own navy and gold (light theme: cream and navy); Inter Tight titles, Inter text.
+   LAYOUT: title band, wide demo stage, steps, feature grid, install tabs, questions, download band, footer. */
+:root{color-scheme:light dark;
+  --bg:light-dark(#f1ede3,#0a1422);--surface:light-dark(#faf8f3,#0e1b2c);--raised:light-dark(#ffffff,#15263c);
+  --control:light-dark(#ffffff,#1e334f);--ink:light-dark(#0e1b2c,#e7ecf2);--muted:light-dark(#3b5675,#a9b6c6);
+  --line:light-dark(rgba(14,27,44,.13),rgba(169,182,198,.16));--accent:light-dark(#0e1b2c,#d4a84b);
+  --accent-hover:light-dark(#1e334f,#e0b85c);--on-accent:light-dark(#faf8f3,#0a1422);--gold:#d4a84b;
+  --gold-ink:light-dark(#8a6620,#e0b85c);--focus:light-dark(#8a6620,#e0b85c);--ok:light-dark(#1f7a4d,#6fd3a0);
+  --shadow:light-dark(0 30px 70px -35px rgba(14,27,44,.45),0 40px 90px -40px rgba(0,0,0,.85)) }
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0;margin:0}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+body{background:var(--bg);color:var(--ink);font:16px/1.6 Inter,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:clip}
+a{color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding:0 max(4vw,16px)}
+.band{padding:clamp(56px,8vw,104px) 0}
+h1,h2,h3{font-family:"Inter Tight",Inter,sans-serif;letter-spacing:-.025em;line-height:1.05;text-wrap:balance}
+h2{font-size:clamp(30px,4.2vw,46px)}
+h3{font-size:19px;line-height:1.25;letter-spacing:-.01em}
+.lede{font-size:17px;color:var(--muted);max-width:56ch}
+:focus-visible{outline:2px solid var(--focus);outline-offset:3px;border-radius:6px}
 
-  nav { display: flex; align-items: center; justify-content: space-between; padding: 20px 0; }
-  .brand { display: flex; align-items: center; gap: 10px; font-weight: 650; text-decoration: none; }
-  .brand img { width: 32px; height: 32px; }
-  nav a.gh { font-size: 14px; color: var(--muted); text-decoration: none; padding: 10px 4px; }
-  nav a.gh:hover { color: var(--text); }
+/* nav */
+nav{position:sticky;top:0;z-index:20;background:light-dark(rgba(241,237,227,.9),rgba(10,20,34,.9));backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;align-items:center;gap:20px;min-height:64px}
+.brand{display:flex;align-items:center;gap:10px;font:700 18px "Inter Tight",sans-serif;text-decoration:none;margin-right:auto}
+.brand img{width:32px;height:32px}
+.links{display:flex;gap:4px}
+.links a{text-decoration:none;color:var(--muted);font-size:15px;padding:10px 12px;border-radius:8px}
+.links a:hover{color:var(--ink);background:var(--raised)}
+@media(max-width:820px){.links{display:none}}
 
-  .hero { display: grid; gap: 40px; padding: 48px 0 72px; align-items: center; }
-  h1 { font-size: clamp(40px, 8vw, 68px); line-height: 1.02; letter-spacing: -0.035em; font-weight: 700; max-width: 12ch; }
-  h1 span { color: var(--accent); }
-  .lede { color: var(--muted); font-size: 18px; max-width: 42ch; margin-top: 18px; }
-  .ctas { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
-  .btn {
-    display: inline-flex; align-items: center; gap: 10px; min-height: 50px; padding: 0 22px;
-    border-radius: 12px; font-weight: 650; text-decoration: none; border: 1px solid var(--border);
-    transition: background 140ms, border-color 140ms;
-  }
-  .btn svg { width: 18px; height: 18px; }
-  .btn.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; }
-  .btn.primary:hover { background: var(--accent-hover); }
-  .btn.ghost:hover { border-color: var(--accent); }
-  .btn:focus-visible, nav a:focus-visible { outline: 2px solid var(--accent-hover); outline-offset: 3px; }
-  .small { font-size: 13px; color: var(--muted); margin-top: 14px; }
-  .shot { justify-self: center; width: min(360px, 100%); border-radius: 22px; border: 1px solid var(--border);
-          box-shadow: 0 30px 80px -30px rgba(0,0,0,.7); }
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:10px;min-height:52px;padding:0 22px;border-radius:12px;font-weight:600;font-size:16px;text-decoration:none;border:1px solid var(--line);background:var(--control);transition:background .15s,border-color .15s,transform .15s;white-space:nowrap}
+.btn svg{width:20px;height:20px;flex:none}
+.btn:hover{border-color:var(--accent)}
+.btn:active{transform:scale(.98)}
+.btn.primary{background:var(--accent);color:var(--on-accent);border-color:transparent}
+.btn.primary:hover{background:var(--accent-hover)}
+.btn small{display:block;font-size:12px;font-weight:500;opacity:.75;line-height:1.1}
+.btn .t{line-height:1.2}
+.btn.sm{min-height:42px;padding:0 16px;font-size:15px}
 
-  section.how { padding: 64px 0; border-top: 1px solid var(--border); }
-  h2 { font-size: clamp(28px, 4.5vw, 40px); letter-spacing: -0.02em; line-height: 1.1; max-width: 18ch; }
-  ol { list-style: none; padding: 0; margin-top: 36px; display: grid; gap: 28px; counter-reset: s; }
-  ol li { counter-increment: s; display: grid; grid-template-columns: 48px 1fr; gap: 16px; align-items: start; }
-  ol li::before {
-    content: counter(s); display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%;
-    border: 1px solid var(--accent); color: var(--accent); font-weight: 650;
-  }
-  ol h3 { font-size: 18px; }
-  ol p { color: var(--muted); max-width: 52ch; }
+/* hero */
+.hero{padding:clamp(40px,6vw,72px) 0 clamp(20px,3vw,32px);display:grid;gap:24px;align-items:end}
+.hero-side{display:grid;gap:22px;justify-items:start}
+@media(min-width:960px){.hero{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:48px}.hero h1{font-size:clamp(64px,7.2vw,92px)}}
+.hero h1{font-size:clamp(46px,8.4vw,92px);max-width:13ch}
+.hero h1 span{color:var(--gold-ink)}
+.ctas{display:flex;flex-wrap:wrap;gap:12px}
+.meta{font-size:14px;color:var(--muted)}
 
-  section.facts { padding: 64px 0; border-top: 1px solid var(--border); display: grid; gap: 32px; }
-  dl { display: grid; gap: 0; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
-  dl div { display: grid; gap: 4px; padding: 18px 20px; background: var(--surface); }
-  dl div + div { border-top: 1px solid var(--border); }
-  dt { font-weight: 600; }
-  dd { color: var(--muted); margin: 0; }
+/* stage (the picture) */
+.stage{position:relative;margin-top:clamp(16px,3vw,32px);border-radius:24px;border:1px solid var(--line);background:
+  radial-gradient(90% 120% at 85% 0%,light-dark(#e4dccb,#1a2e48) 0%,transparent 60%),var(--surface);
+  padding:clamp(18px,3vw,36px);display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,.9fr);gap:clamp(16px,3vw,36px);align-items:center;box-shadow:var(--shadow);overflow:hidden}
+@media(max-width:760px){.stage{grid-template-columns:minmax(0,1fr)}}
+.screen{background:var(--raised);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.bar{display:flex;align-items:center;gap:7px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.bar i{width:11px;height:11px;border-radius:50%;background:var(--line)}
+.bar span{margin-left:10px;flex:1;height:24px;border-radius:7px;background:var(--surface);font-size:12px;color:var(--muted);display:flex;align-items:center;padding:0 10px}
+.screen-body{padding:18px;display:grid;gap:14px}
+.screen-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.screen-head b{font:600 17px "Inter Tight",sans-serif}
+.target{position:relative;border:0;font:600 14px Inter,sans-serif;background:var(--accent);color:var(--on-accent);border-radius:10px;padding:10px 16px;white-space:nowrap;cursor:default}
+.target.hit{transform:scale(.95)}
+.ripple{position:absolute;inset:-8px;border-radius:14px;border:2px solid var(--gold);opacity:0;pointer-events:none}
+.target.hit .ripple{animation:rip .6s ease-out}
+@keyframes rip{from{opacity:1;transform:scale(.85)}to{opacity:0;transform:scale(1.25)}}
+.rows{display:grid;gap:8px}
+.row{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:14px}
+.row .av{width:30px;height:30px;border-radius:50%;background:var(--surface);display:grid;place-items:center;font-size:12px;font-weight:600;color:var(--muted)}
+.row .tag{font-size:12px;color:var(--muted);white-space:nowrap}
+.row.new{border-color:color-mix(in srgb,var(--gold) 55%,transparent);animation:in .4s ease-out}
+.row.new .tag{color:var(--gold-ink);font-weight:600}
+@keyframes in{from{opacity:0;transform:translateY(-6px)}}
+.cursor{position:absolute;left:0;top:0;width:26px;height:26px;z-index:5;pointer-events:none;transition:transform .7s cubic-bezier(.5,0,.2,1);filter:drop-shadow(0 3px 4px rgba(0,0,0,.35))}
+.key{position:absolute;z-index:6;padding:6px 12px;border-radius:8px;font:600 13px Inter,sans-serif;background:var(--ink);color:var(--bg);opacity:0;transform:translateY(6px);transition:opacity .2s,transform .2s;pointer-events:none;white-space:nowrap}
+.key.on{opacity:1;transform:none}
 
-  footer { padding: 32px 0 48px; border-top: 1px solid var(--border); color: var(--muted); font-size: 14px; }
+.app{background:light-dark(#faf8f3,#0a1422);border:1px solid var(--line);border-radius:20px;padding:16px;display:grid;gap:12px;color:var(--ink);box-shadow:var(--shadow)}
+.app-h{display:flex;align-items:center;gap:10px}
+.app-h img{width:34px;height:34px}
+.app-h b{display:block;font:600 15px "Inter Tight",sans-serif}
+.app-h small{font-size:12px;color:var(--muted)}
+.cell{background:light-dark(#fff,#0e1b2c);border:1px solid var(--line);border-radius:14px;padding:12px}
+.cell-l{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px}
+.pos{font:600 22px "Inter Tight",sans-serif;font-variant-numeric:tabular-nums}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.num{font:600 20px Inter,sans-serif;font-variant-numeric:tabular-nums}
+.st{display:flex;justify-content:space-between;gap:8px;font-size:14px;font-weight:600}
+.st span:last-child{color:var(--muted);font-weight:500;font-variant-numeric:tabular-nums}
+.meter{height:6px;border-radius:9px;background:light-dark(#efe9dc,#15263c);overflow:hidden;margin-top:8px}
+.meter i{display:block;height:100%;width:0;background:var(--gold);transition:width .35s}
+.run{text-align:center;padding:12px;border-radius:12px;font-weight:600;background:var(--gold);color:#0a1422}
+.run.stop{background:transparent;color:light-dark(#a3362a,#f08a7e);border:1px solid currentColor}
+.cap{font-size:13px;color:var(--muted);margin-top:14px}
 
-  @media (min-width: 860px) {
-    .hero { grid-template-columns: 1.15fr .85fr; padding: 72px 0 96px; }
-    section.how { grid-template-columns: .8fr 1.2fr; display: grid; gap: 48px; }
-    section.how ol { margin-top: 0; }
-    section.facts { grid-template-columns: .8fr 1.2fr; gap: 48px; }
-  }
-  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+/* steps */
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:clamp(20px,3vw,40px);margin-top:44px;counter-reset:s}
+.step{counter-increment:s;border-top:1px solid var(--line);padding-top:22px}
+.step::before{content:counter(s);display:grid;place-items:center;width:40px;height:40px;border-radius:50%;border:1px solid var(--gold);color:var(--gold-ink);font-weight:600;margin-bottom:18px}
+.step p{color:var(--muted);margin-top:8px}
+
+/* features */
+.grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px;margin-top:44px}
+.f{grid-column:span 2;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:24px;display:grid;gap:10px;align-content:start}
+.f.wide{grid-column:span 3}
+.f p{color:var(--muted)}
+.f svg{width:26px;height:26px;color:var(--gold-ink)}
+.big{font:700 clamp(40px,5vw,56px)/1 "Inter Tight",sans-serif;color:var(--gold-ink);letter-spacing:-.03em}
+@media(max-width:900px){.f,.f.wide{grid-column:span 3}}
+@media(max-width:600px){.f,.f.wide{grid-column:span 6}}
+kbd{font:600 12px Inter,sans-serif;padding:2px 7px;border-radius:6px;border:1px solid var(--line);background:var(--raised);white-space:nowrap}
+
+/* install */
+.install{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:clamp(24px,5vw,64px);align-items:start}
+@media(max-width:860px){.install{grid-template-columns:minmax(0,1fr)}}
+.tabs{display:flex;gap:6px;padding:5px;border-radius:14px;background:var(--surface);border:1px solid var(--line);width:max-content;max-width:100%}
+.tabs button{font:600 15px Inter,sans-serif;color:var(--muted);background:none;border:0;border-radius:10px;min-height:44px;padding:0 20px;cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--raised);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.panel{margin-top:18px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:clamp(20px,3vw,32px)}
+.panel ol{padding-left:22px;display:grid;gap:12px}
+.panel li::marker{color:var(--gold-ink);font-weight:600}
+.panel .btn{margin-top:22px}
+.note{margin-top:18px;font-size:14px;color:var(--muted);border-left:2px solid var(--gold);padding-left:12px}
+
+/* faq */
+.faq{max-width:820px;margin-top:36px;border-top:1px solid var(--line)}
+details{border-bottom:1px solid var(--line)}
+summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;gap:16px;align-items:center;padding:20px 0;font-weight:600;font-size:17px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-size:24px;font-weight:400;color:var(--gold-ink);transition:transform .2s}
+details[open] summary::after{transform:rotate(45deg)}
+details p{color:var(--muted);padding:0 0 20px;max-width:64ch}
+
+/* final */
+.final{background:#0e1b2c;color:#e7ecf2;border-radius:28px;padding:clamp(36px,6vw,72px);display:grid;gap:18px;justify-items:start;position:relative;overflow:hidden}
+.final::after{content:"";position:absolute;right:-120px;top:-120px;width:420px;height:420px;border-radius:50%;border:2px solid rgba(212,168,75,.35);box-shadow:0 0 0 60px rgba(212,168,75,.06),0 0 0 120px rgba(212,168,75,.04)}
+.final h2{max-width:16ch}
+.final p{color:#a9b6c6;max-width:50ch}
+.final .btn{background:#15263c;color:#e7ecf2;border-color:rgba(169,182,198,.25)}
+.final .btn.primary{background:#d4a84b;color:#0a1422;border-color:transparent}
+.final .btn.primary:hover{background:#e0b85c}
+footer{padding:36px 0 48px;color:var(--muted);font-size:14px;display:flex;flex-wrap:wrap;gap:12px 24px;justify-content:space-between}
+footer a{text-decoration:none}footer a:hover{color:var(--ink)}
+@media(max-width:360px){.btn{white-space:normal;padding:0 16px}.brand{font-size:16px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}html{scroll-behavior:auto}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <nav>
-    <a class="brand" href="#"><img src="logo.png" alt=""> Tapline</a>
-    <a class="gh" href="https://github.com/HanyJr/tapline/releases">Releases</a>
-  </nav>
+<nav><div class="wrap">
+  <a class="brand" href="#top"><img src="data:image/png;base64,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" alt="">Tapline</a>
+  <div class="links"><a href="#how">How it works</a><a href="#features">Features</a><a href="#install">Install</a><a href="#faq">Questions</a></div>
+  <a class="btn primary sm" href="#install">Download</a>
+</div></nav>
 
+<main id="top" class="wrap">
   <header class="hero">
-    <div>
-      <h1>Click. Enter. <span>Repeat.</span></h1>
-      <p class="lede">Tapline clicks the spot you choose, presses Enter, waits, and does it again as many times as you set. One key starts it, the same key stops it.</p>
-      <div class="ctas">
-        <a class="btn primary" href="https://github.com/HanyJr/tapline/releases/latest/download/Tapline_1.0.0_x64-setup.exe">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
-          Download for Windows
-        </a>
-        <a class="btn ghost" href="https://github.com/HanyJr/tapline/releases/latest/download/Tapline_1.0.0_universal.dmg">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
-          Download for Mac
-        </a>
-      </div>
-      <p class="small">Free. About 5 MB. Windows 10 and 11, macOS 11 or later.</p>
+    <h1>Click. Enter. <span>Repeat.</span></h1>
+    <div class="hero-side">
+    <p class="lede">Tapline clicks the spot you choose, presses Enter, waits, and does it again as many times as you set. One key starts it. The same key stops it.</p>
+    <div class="ctas">
+      <a class="btn primary" id="dl-main" href="#install"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg><span class="t" id="dl-main-t">Download Tapline<small>Windows and Mac</small></span></a>
+      <a class="btn" href="#how">See how it works</a>
     </div>
-    <img class="shot" src="screenshot.png" alt="The Tapline window with click spot, times to click, wait time and a Run button">
+    <p class="meta">Free · Windows 10 and 11 · macOS 11 or later, Apple Silicon and Intel · No account</p>
+    </div>
   </header>
 
-  <section class="how">
-    <h2>Set it up once, run it all day.</h2>
-    <ol>
-      <li><div><h3>Pick the spot</h3><p>Press Set position and hold your mouse over the button you want clicked. Tapline remembers it.</p></div></li>
-      <li><div><h3>Choose how many and how fast</h3><p>Set how many times to click and how long to wait between each one, from zero to ten minutes.</p></div></li>
-      <li><div><h3>Press F8</h3><p>Tapline clicks, presses Enter, waits and repeats. Press F8 again, or Stop, to end it early.</p></div></li>
-    </ol>
+  <section class="stage" id="stage" aria-label="Tapline demo: clicking a button and pressing Enter three times">
+    <div class="screen">
+      <div class="bar"><i></i><i></i><i></i><span>your-work-app.com/leads</span></div>
+      <div class="screen-body">
+        <div class="screen-head"><b>Lead queue</b><button class="target" id="target" tabindex="-1" aria-hidden="true">New leads<span class="ripple"></span></button></div>
+        <div class="rows" id="rows"></div>
+      </div>
+    </div>
+    <div class="app" aria-hidden="true">
+      <div class="app-h"><img src="data:image/png;base64,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" alt=""><div><b>Tapline</b><small>Click. Enter. Repeat.</small></div></div>
+      <div class="cell"><div class="cell-l">Click spot</div><div class="pos">812, 244</div></div>
+      <div class="duo"><div class="cell"><div class="cell-l">Times to click</div><div class="num">3</div></div><div class="cell"><div class="cell-l">Wait between</div><div class="num">2 sec</div></div></div>
+      <div class="cell"><div class="st"><span id="d-st">Ready</span><span id="d-ct">0 / 3</span></div><div class="meter"><i id="d-bar"></i></div></div>
+      <div class="run" id="d-run">Run</div>
+    </div>
+    <svg class="cursor" id="cursor" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3v17l4.7-4.4 3.2 6.7 2.9-1.4-3.2-6.6 6.4-.3z" fill="#fff" stroke="#0a1422" stroke-width="1.4" stroke-linejoin="round"/></svg>
+    <div class="key" id="key">Enter</div>
+  </section>
+  <p class="cap">A live demo: Tapline set to 3 clicks, 2 seconds apart.</p>
+
+  <section class="band" id="how">
+    <h2>Set it up once. Run it all day.</h2>
+    <div class="steps">
+      <div class="step"><h3>Pick the spot</h3><p>Press Set position and hold your mouse over the button you want clicked. Tapline saves it after 3 seconds and remembers it next time.</p></div>
+      <div class="step"><h3>Choose how many and how fast</h3><p>Set how many times to click, from 1 to 999, and how long to wait between each, from no wait to 10 minutes.</p></div>
+      <div class="step"><h3>Press F8</h3><p>Tapline clicks, presses Enter, waits and repeats. Press F8 again or Stop to end early. You can stay in your work window the whole time.</p></div>
+    </div>
   </section>
 
-  <section class="facts">
-    <h2>Small, quiet, and yours.</h2>
-    <dl>
-      <div><dt>Stays out of the way</dt><dd>A small window that floats on top, so you can watch the progress without switching apps.</dd></div>
-      <div><dt>No account, no internet</dt><dd>Everything runs on your computer. Nothing is sent anywhere.</dd></div>
-      <div><dt>Remembers your setup</dt><dd>The spot, the count and the wait are saved for next time.</dd></div>
-      <div><dt>On a Mac</dt><dd>Allow Tapline once under System Settings, Privacy and Security, Accessibility so it can click for you.</dd></div>
-    </dl>
+  <section class="band" id="features" style="padding-top:0">
+    <h2>Small, quiet, and exact.</h2>
+    <div class="grid">
+      <div class="f wide"><div class="big">1 – 999</div><h3>As many rounds as you need</h3><p>Every round is one click and one Enter, with your wait in between. Watch the count and progress bar as it goes.</p></div>
+      <div class="f wide"><div class="big">F8</div><h3>Start and stop from anywhere</h3><p>No need to switch windows. On a Mac keyboard press <kbd>fn</kbd> + <kbd>F8</kbd>. The Run and Stop buttons always work too.</p></div>
+      <div class="f"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8"/></svg><h3>Floats on top</h3><p>A small window that stays above your work, so the progress is always in view.</p></div>
+      <div class="f"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/></svg><h3>Private by design</h3><p>No account and no internet. Everything stays on your computer.</p></div>
+      <div class="f"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg><h3>Light and instant</h3><p>Built with Tauri and Rust, so it opens straight away and barely touches your memory.</p></div>
+    </div>
   </section>
 
-  <footer>Copyright 2026 Ian Brown. Tapline 1.0.</footer>
-</div>
+  <section class="band install" id="install" style="padding-top:0">
+    <div><h2>Install in a minute.</h2><p class="lede" style="margin-top:16px">Pick your computer. The download is the full app: there's nothing else to set up.</p></div>
+    <div>
+      <div class="tabs" role="tablist" aria-label="Choose your computer">
+        <button role="tab" id="tab-win" aria-controls="p-win" aria-selected="true">Windows</button>
+        <button role="tab" id="tab-mac" aria-controls="p-mac" aria-selected="false" tabindex="-1">Mac</button>
+      </div>
+      <div class="panel" id="p-win" role="tabpanel" aria-labelledby="tab-win">
+        <ol>
+          <li>Download the installer.</li>
+          <li>Open it. If you see <b>Windows protected your PC</b>, press <b>More info</b>, then <b>Run anyway</b>.</li>
+          <li>Tapline installs for your user only, no admin needed, and appears in the Start menu.</li>
+        </ol>
+        <a class="btn primary" href="https://github.com/HanyJr/tapline/releases/latest/download/Tapline_1.0.0_x64-setup.exe"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.5 10.5 4.4v7.1H3zM11.5 4.3 21 3v8.5h-9.5zM3 12.5h7.5v7.1L3 18.5zM11.5 12.5H21V21l-9.5-1.3z"/></svg><span class="t">Download for Windows<small>Installer, .exe</small></span></a>
+      </div>
+      <div class="panel" id="p-mac" role="tabpanel" aria-labelledby="tab-mac" hidden>
+        <ol>
+          <li>Download the disk image. It runs on Apple Silicon and Intel.</li>
+          <li>Open it and drag <b>Tapline</b> into <b>Applications</b>.</li>
+          <li>First launch: right-click Tapline, choose <b>Open</b>, then <b>Open</b> again. On macOS 15 or later use <b>System Settings, Privacy &amp; Security, Open Anyway</b>.</li>
+          <li>When asked, allow Tapline under <b>Privacy &amp; Security, Accessibility</b>. That's what lets it click for you.</li>
+        </ol>
+        <a class="btn primary" href="https://github.com/HanyJr/tapline/releases/latest/download/Tapline_1.0.0_universal.dmg"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.4 12.6c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8s1.9.8 3.2.8c1.3 0 2.1-1.2 2.9-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.4-1-2.4-3.9zM14 5.5c.7-.8 1.1-1.9 1-3-.9 0-2.1.6-2.8 1.4-.6.7-1.2 1.8-1 2.9 1.1.1 2.1-.5 2.8-1.3z"/></svg><span class="t">Download for Mac<small>Disk image, .dmg</small></span></a>
+      </div>
+      <p class="note">Other versions and release notes are on the <a href="https://github.com/HanyJr/tapline/releases">releases page</a>.</p>
+    </div>
+  </section>
+
+  <section class="band" id="faq" style="padding-top:0">
+    <h2>Questions</h2>
+    <div class="faq">
+      <details><summary>Where does it click?</summary><p>Exactly where your mouse was when you set the position. If the window you click in moves or changes size, set the position again.</p></details>
+      <details><summary>Can I stop it halfway?</summary><p>Yes. Press F8 or Stop at any moment, including during a wait. Tapline tells you how many rounds it finished.</p></details>
+      <details><summary>Why does my Mac ask for Accessibility access?</summary><p>macOS only lets apps click and type for you once you allow them. Tapline uses that permission for clicking and pressing Enter, nothing else.</p></details>
+      <details><summary>Why does Windows or macOS warn me the first time?</summary><p>Tapline isn't code-signed yet, so both systems ask you to confirm the first launch. The install steps above show how. You only do it once.</p></details>
+      <details><summary>Does it work in any app?</summary><p>Yes: browsers, desktop apps, anything you can click. It clicks the screen position you saved, whatever is there.</p></details>
+    </div>
+  </section>
+
+  <section class="final">
+    <h2>Give your mouse hand a break.</h2>
+    <p>Set the spot, pick how many and press F8. Tapline does the rest.</p>
+    <div class="ctas"><a class="btn primary" href="https://github.com/HanyJr/tapline/releases/latest/download/Tapline_1.0.0_x64-setup.exe">Download for Windows</a><a class="btn" href="https://github.com/HanyJr/tapline/releases/latest/download/Tapline_1.0.0_universal.dmg">Download for Mac</a></div>
+  </section>
+
+  <footer><span>Copyright 2026 Ian Brown · Tapline 1.0</span><a href="https://github.com/HanyJr/tapline">GitHub</a></footer>
+</main>
+
+<script>
+{
+  const $ = id => document.getElementById(id);
+  const REL = "https://github.com/HanyJr/tapline/releases";
+
+  // Main button: offer the visitor's own system
+  const ua = navigator.userAgent, isMac = /Mac/.test(ua) && !/iPhone|iPad/.test(ua), isWin = /Windows/.test(ua);
+  if (isMac || isWin) {
+    $("dl-main").href = isMac ? "https://github.com/HanyJr/tapline/releases/latest/download/Tapline_1.0.0_universal.dmg" : "https://github.com/HanyJr/tapline/releases/latest/download/Tapline_1.0.0_x64-setup.exe";
+    $("dl-main-t").innerHTML = (isMac ? "Download for Mac" : "Download for Windows") + "<small>Free · version 1.0</small>";
+  }
+  if (isMac) selectTab("mac");
+
+  // Install tabs
+  function selectTab(name) {
+    for (const t of ["win", "mac"]) {
+      const on = t === name;
+      $("tab-" + t).setAttribute("aria-selected", on);
+      $("tab-" + t).tabIndex = on ? 0 : -1;
+      $("p-" + t).hidden = !on;
+    }
+  }
+  $("tab-win").addEventListener("click", () => selectTab("win"));
+  $("tab-mac").addEventListener("click", () => selectTab("mac"));
+  document.querySelector(".tabs").addEventListener("keydown", e => {
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+      const next = $("tab-win").getAttribute("aria-selected") === "true" ? "mac" : "win";
+      selectTab(next); $("tab-" + next).focus();
+    }
+  });
+
+  // Live demo
+  const names = [["MR","Maya R.","London to NYC"],["JT","James T.","Dubai to Paris"],["SK","Sara K.","Cairo to Tokyo"],["AL","Adam L.","Rome to Miami"],["NB","Nora B.","LA to Sydney"]];
+  const rowsEl = $("rows"), stage = $("stage"), cur = $("cursor"), key = $("key"), tgt = $("target");
+  const TOTAL = 3, reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let rows = [], k = 0;
+  const row = (n, isNew) => `<div class="row${isNew ? " new" : ""}"><span class="av">${n[0]}</span><span>${n[1]} · ${n[2]}</span><span class="tag">${isNew ? "Assigned" : "Waiting"}</span></div>`;
+  const draw = () => { rowsEl.innerHTML = rows.slice(0, 4).map(r => row(r.n, r.isNew)).join(""); };
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const set = (st, done) => { $("d-st").textContent = st; $("d-ct").textContent = `${done} / ${TOTAL}`; $("d-bar").style.width = (done / TOTAL * 100) + "%"; };
+  const spot = (el, dx, dy) => { const s = stage.getBoundingClientRect(), r = el.getBoundingClientRect(); return [r.left - s.left + r.width * dx, r.top - s.top + r.height * dy]; };
+  const move = ([x, y]) => { cur.style.transform = `translate(${x}px,${y}px)`; };
+  const reset = () => { rows = [0,1,2].map(i => ({ n: names[(k + i) % names.length], isNew: false })); draw(); set("Ready", 0); };
+
+  async function loop() {
+    for (;;) {
+      reset();
+      $("d-run").textContent = "Run"; $("d-run").classList.remove("stop");
+      move(spot($("d-run"), .5, .6)); await sleep(1400);
+      $("d-run").textContent = "Stop"; $("d-run").classList.add("stop");
+      for (let i = 0; i < TOTAL; i++) {
+        set(`Click ${i + 1} of ${TOTAL}`, i);
+        move(spot(tgt, .55, .55)); await sleep(800);
+        tgt.classList.add("hit"); await sleep(160); tgt.classList.remove("hit");
+        const [x, y] = spot(tgt, .5, 0);
+        key.style.left = Math.max(8, x - 30) + "px"; key.style.top = Math.max(8, y - 40) + "px";
+        key.classList.add("on"); await sleep(420); key.classList.remove("on");
+        k++; rows.unshift({ n: names[(k + 2) % names.length], isNew: true }); draw();
+        set(i + 1 < TOTAL ? "Waiting 2 sec" : "Done", i + 1);
+        await sleep(i + 1 < TOTAL ? 1500 : 600);
+      }
+      $("d-run").textContent = "Run"; $("d-run").classList.remove("stop");
+      move(spot($("d-run"), .5, .6)); await sleep(2600);
+    }
+  }
+  if (reduce) {
+    rows = [0,1,2].map(i => ({ n: names[i], isNew: i < 2 })); draw(); set("Waiting 2 sec", 2);
+    cur.style.display = "none";
+  } else { reset(); requestAnimationFrame(() => { move(spot($("d-run"), .5, .6)); loop(); }); }
+  addEventListener("resize", () => { if (!reduce) move(spot(tgt, .55, .55)); });
+}
+</script>
 </body>
 </html>

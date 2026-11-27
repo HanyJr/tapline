@@ -80,18 +80,22 @@ jobs:
 
       # Same installers again under names that never change, so download links keep working
       - name: Upload installers with fixed names
+        id: fixed
+        continue-on-error: true
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_ID: ${{ steps.tauri.outputs.releaseId }}
+          REPO: ${{ github.repository }}
+        run: bash .github/upload-fixed.sh 2>&1 | tee upload.log; exit ${PIPESTATUS[0]}
+
+      - name: Save upload log to a branch
+        if: steps.fixed.outcome == 'failure'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            FILE=$(ls src-tauri/target/release/bundle/nsis/*-setup.exe | head -1); NAME=Tapline-Windows-Setup.exe
-          else
-            FILE=$(ls src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg | head -1); NAME=Tapline-Mac.dmg
-          fi
-          echo "Uploading $FILE as $NAME to release $RELEASE_ID"
-          OLD=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" "https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets" | grep -B3 "\"name\": \"$NAME\"" | grep '"id"' | head -1 | tr -dc '0-9')
-          if [ -n "$OLD" ]; then curl -s -X DELETE -H "Authorization: Bearer $GITHUB_TOKEN" "https://api.github.com/repos/${{ github.repository }}/releases/assets/$OLD"; fi
-          curl -sf -X POST -H "Authorization: Bearer $GITHUB_TOKEN" -H "Content-Type: application/octet-stream" \
-            --data-binary @"$FILE" "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=$NAME" > /dev/null
+          mkdir -p "$RUNNER_TEMP/ulogs" && cp upload.log "$RUNNER_TEMP/ulogs/" && cd "$RUNNER_TEMP/ulogs"
+          git init -q -b logs && git add . && git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -qm "upload log"
+          git push -fq "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}" logs:ci-logs-upload-${{ runner.os }}
+          exit 1

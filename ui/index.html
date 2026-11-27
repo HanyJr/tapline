@@ -19,6 +19,13 @@
   --bg:var(--cream-100);--surface:var(--cream-50);--raised:#fff;--control:#fff;--border:rgba(14,27,44,.14);
   --text:var(--navy-900);--muted:var(--navy-500);--accent:var(--navy-900);--accent-hover:var(--navy-700);
   --on-accent:var(--cream-50);--focus:var(--gold-700);--danger:var(--red-700);--success:var(--green-700);--pop:#fff}}
+:root[data-accent=blue]{--accent:#6aa8ff;--accent-hover:#8dbcff;--focus:#8dbcff}
+:root[data-accent=green]{--accent:#5cc99a;--accent-hover:#7dd8b0;--focus:#7dd8b0}
+:root[data-accent=rose]{--accent:#f08aa0;--accent-hover:#f5a3b4;--focus:#f5a3b4}
+@media (prefers-color-scheme: light){
+  :root[data-accent=blue]{--accent:#1f5fbf;--accent-hover:#174a96;--focus:#1f5fbf}
+  :root[data-accent=green]{--accent:#1f7a4d;--accent-hover:#175e3b;--focus:#1f7a4d}
+  :root[data-accent=rose]{--accent:#b23a5a;--accent-hover:#8f2e48;--focus:#b23a5a}}
 *{box-sizing:border-box;margin:0;min-width:0}
 [hidden]{display:none!important}
 html,body{height:100%}
@@ -28,7 +35,7 @@ header{display:flex;align-items:center;gap:10px;padding:14px 16px 10px}
 header img{width:34px;height:34px;flex:none}
 .brand{font-weight:650;font-size:15px;line-height:1.1}
 .brand small{display:block;font-weight:400;font-size:12px;color:var(--muted)}
-header .dd{margin-left:auto;max-width:56%}
+header .dd{margin-left:auto;max-width:52%}
 .update{margin:0 16px 8px;display:flex;align-items:center;gap:10px;justify-content:space-between;padding:8px 12px;border-radius:var(--r-md);background:color-mix(in srgb,var(--gold-500) 16%,transparent);border:1px solid color-mix(in srgb,var(--gold-500) 45%,transparent);font-size:13px}
 nav{display:flex;gap:4px;margin:0 16px;padding:4px;border-radius:var(--r-md);background:var(--surface);border:1px solid var(--border)}
 nav button{flex:1;min-height:36px;border:0;background:none;color:var(--muted);font:600 13px var(--font);border-radius:9px;cursor:pointer}
@@ -98,6 +105,12 @@ input{font:inherit;color:var(--text)}
 .snap{position:relative;height:96px;border-radius:12px;border:1px dashed var(--border);background:var(--raised);display:grid;place-items:center;overflow:hidden}
 .snap canvas{max-width:100%;max-height:100%;image-rendering:pixelated;border-radius:4px}
 .snap .hint{position:absolute}
+.swatches{display:flex;gap:10px}
+.sw{width:40px;height:40px;border-radius:50%;border:2px solid transparent;display:grid;place-items:center;background:none;padding:0}
+.sw span{width:28px;height:28px;border-radius:50%}
+.sw[aria-checked=true]{border-color:var(--text)}
+.codebox{width:100%;min-height:110px;border-radius:var(--r-md);border:1px solid var(--border);background:var(--raised);color:var(--text);padding:10px 12px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;resize:vertical;word-break:break-all;user-select:text;-webkit-user-select:text}
+.codebox:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
 .recdot{width:10px;height:10px;border-radius:50%;background:var(--danger);flex:none}
 .recording .recdot{animation:pulse 1s infinite}
 .step{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:12px;display:grid;gap:10px}
@@ -136,6 +149,7 @@ kbd{font:600 11px var(--font);padding:1px 6px;border-radius:5px;border:1px solid
     <img src="logo.png" alt="">
     <div class="brand">Tapline<small>Click. Enter. Repeat.</small></div>
     <div class="dd" id="presetDD"></div>
+    <button class="btn icon ghost" type="button" id="miniBtn" aria-label="Switch to the mini bar" title="Mini bar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="9" width="18" height="6" rx="3"/></svg></button>
   </header>
   <div class="update" id="update" hidden><span id="updateText"></span><button class="btn sm" id="updateBtn" type="button">Download</button></div>
   <nav role="tablist" aria-label="Sections">
@@ -148,8 +162,9 @@ kbd{font:600 11px var(--font);padding:1px 6px;border-radius:5px;border:1px solid
     <!-- RUN -->
     <section id="run" role="tabpanel" aria-labelledby="tab-run">
       <div class="card">
-        <div class="row"><span class="label">Sequence</span><button class="btn sm ghost" type="button" data-go="steps">Edit steps</button></div>
+        <div class="row"><span class="label">Sequence</span><span><button class="btn sm ghost" type="button" id="previewBtn">Preview</button><button class="btn sm ghost" type="button" data-go="steps">Edit steps</button></span></div>
         <div id="summary" class="muted"></div>
+        <p class="hint" id="previewMsg" hidden></p>
       </div>
       <div class="two">
         <div class="card"><label class="label" for="rounds">Rounds</label><div class="stepper" data-field="rounds"></div><div class="unit">times to repeat</div></div>
@@ -234,6 +249,10 @@ kbd{font:600 11px var(--font);padding:1px 6px;border-radius:5px;border:1px solid
         <button class="switch" role="switch" data-set="notify" type="button"><span class="t"><b>Show a notification</b></span><span class="track"></span></button>
       </div>
       <div class="card">
+        <span class="label" id="accentLbl">Accent color</span>
+        <div class="swatches" role="radiogroup" aria-labelledby="accentLbl" id="accents"></div>
+      </div>
+      <div class="card">
         <span class="label">App</span>
         <button class="switch" role="switch" data-set="tray_on_close" type="button"><span class="t"><b>Keep running in the tray when closed</b><span class="hint" id="trayHint">Closing the window hides it. Quit from the tray icon.</span></span><span class="track"></span></button>
         <button class="switch" role="switch" id="autostart" type="button"><span class="t"><b>Open at login</b></span><span class="track"></span></button>
@@ -250,6 +269,7 @@ kbd{font:600 11px var(--font);padding:1px 6px;border-radius:5px;border:1px solid
   <div class="card">
     <b id="dlgTitle"></b>
     <input class="field" id="dlgInput" aria-labelledby="dlgTitle">
+    <textarea class="codebox" id="dlgCode" aria-labelledby="dlgTitle" hidden spellcheck="false"></textarea>
     <p class="hint" id="dlgMsg"></p>
     <div class="row" style="justify-content:flex-end"><button class="btn" type="button" id="dlgCancel">Cancel</button><button class="btn" type="button" id="dlgOk" style="background:var(--accent);color:var(--on-accent);border-color:transparent">Save</button></div>
   </div>
@@ -276,10 +296,10 @@ const T = window.__TAURI__;
 const handlers = {};
 const fire = (ev, payload) => (handlers[ev] || []).forEach(f => f({ payload }));
 const mock = (() => {
-  let st = { presets: [{ id: "p1", name: "New leads", steps: [{ kind: "click", x: 812, y: 244, button: "left", key: "Enter", mods: [], text: "", secs: 1, delay: .3, travel_ms: 0 }, { kind: "key", x: null, y: null, button: "left", key: "Enter", mods: [], text: "", secs: 1, delay: .3, travel_ms: 0 }], rounds: 2, round_wait: 2, watch: { x: null, y: null, w: 1, h: 1, color: null, grid: [], gw: 0, gh: 0, mode: "match", tolerance: 12, cooldown: 10 } }], active: "p1", hotkey: "F8", sound: true, notify: true, tray_on_close: true, corner_stop: true };
+  let st = { presets: [{ id: "p1", name: "New leads", steps: [{ kind: "click", x: 812, y: 244, button: "left", key: "Enter", mods: [], text: "", secs: 1, delay: .3, travel_ms: 0, verify: false, retries: 2, verify_secs: 2 }, { kind: "key", x: null, y: null, button: "left", key: "Enter", mods: [], text: "", secs: 1, delay: .3, travel_ms: 0, verify: false, retries: 2, verify_secs: 2 }], rounds: 2, round_wait: 2, watch: { x: null, y: null, w: 1, h: 1, color: null, grid: [], gw: 0, gh: 0, mode: "match", tolerance: 12, cooldown: 10 } }], active: "p1", hotkey: "F8", sound: true, notify: true, tray_on_close: true, corner_stop: true };
   let log = [], running = false, stopF = false, watching = false;
   return {
-    get_all: async () => ({ settings: structuredClone(st), platform: "preview", version: "1.1.0", autostart: false, running, watching, log, hotkey_ok: true }),
+    get_all: async () => ({ settings: structuredClone(st), platform: "preview", version: "1.3.0", autostart: false, running, watching, log, hotkey_ok: true }),
     save_settings: async ({ settings }) => { st = structuredClone(settings); return structuredClone(st); },
     capture_position: async () => [640 + Math.round(Math.random() * 300), 200 + Math.round(Math.random() * 200)],
     watch_probe: async () => ({ diff: .04, matched: true }),
@@ -287,7 +307,7 @@ const mock = (() => {
     start_snip: async () => { setTimeout(() => { const p = st.presets.find(p => p.id === st.active); const gw = 40, gh = 9; const grid = []; for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) grid.push(x > 30 && y > 1 && y < 7 ? [200, 60, 50] : x < 26 && y > 2 && y < 6 ? [60, 80, 110] : [238, 236, 230]); Object.assign(p.watch, { x: 640, y: 210, w: 180, h: 40, grid, gw, gh }); fire("snipped"); }, 300); },
     snip_cancel: async () => {}, snip_done: async () => {},
     start_record: async () => { fire("rec", { on: true, count: 0, text: "Recording starts in 3..." }); setTimeout(() => fire("rec", { on: true, count: 2, text: "Recording · 2 steps" }), 400); },
-    stop_record: async () => { st.presets.push({ id: "r1", name: "Recording 1", steps: [{ kind: "click", x: 700, y: 300, button: "left", key: "Enter", mods: [], text: "", secs: 1, delay: .8, travel_ms: 0 }, { kind: "text", x: null, y: null, button: "left", key: "Enter", mods: [], text: "hello", secs: 1, delay: .3, travel_ms: 0 }], rounds: 2, round_wait: 2, watch: { x: null, y: null, w: 1, h: 1, grid: [], gw: 0, gh: 0, mode: "match", tolerance: 12, cooldown: 10 } }); st.active = "r1"; fire("rec", { on: false, count: 2, text: 'Saved 2 steps as "Recording 1"' }); },
+    stop_record: async () => { st.presets.push({ id: "r1", name: "Recording 1", steps: [{ kind: "click", x: 700, y: 300, button: "left", key: "Enter", mods: [], text: "", secs: 1, delay: .8, travel_ms: 0 }, { kind: "text", x: null, y: null, button: "left", key: "Enter", mods: [], text: "hello", secs: 1, delay: .3, travel_ms: 0, verify: false, retries: 2, verify_secs: 2 }], rounds: 2, round_wait: 2, watch: { x: null, y: null, w: 1, h: 1, grid: [], gw: 0, gh: 0, mode: "match", tolerance: 12, cooldown: 10 } }); st.active = "r1"; fire("rec", { on: false, count: 2, text: 'Saved 2 steps as "Recording 1"' }); },
     run: async () => {
       const p = st.presets.find(p => p.id === st.active); if (running) return; running = true; stopF = false;
       let d = 0;
@@ -297,6 +317,8 @@ const mock = (() => {
     },
     stop: async () => { stopF = true; },
     set_watch: async ({ on }) => { if (on && !st.presets.find(p => p.id === st.active).watch.grid.length) throw "Select the area to watch first"; watching = on; fire("watch", on ? { on: true, state: "armed", text: "Watching for the snapshot", diff: .62, matched: false } : { on: false, state: "off", text: "Watch is off", diff: null, matched: false }); },
+    preview_steps: async () => st.presets.find(p => p.id === st.active).steps.filter(s => s.kind === "click" && s.x != null).length || Promise.reject("No click spots to show yet"),
+    show_mini: async () => {}, copy_text: async () => {},
     set_autostart: async ({ on }) => on, clear_log: async () => { log = []; }, open_url: async () => {},
   };
 })();
@@ -310,7 +332,7 @@ const KEYS = ["Enter", "Tab", "Space", "Escape", "Backspace", "Delete", "Up", "D
   ...Array.from({ length: 12 }, (_, i) => "F" + (i + 1)), ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".split("")];
 const FKEYS = Array.from({ length: 12 }, (_, i) => "F" + (i + 1));
 const modLabel = m => m === "Cmd" ? (plat === "mac" ? "Cmd" : "Win") : m === "Alt" && plat === "mac" ? "Option" : m;
-const LIMITS = { rounds: [1, 999, 1, 0], round_wait: [0, 600, .5, 1], tolerance: [1, 100, 1, 0], cooldown: [1, 3600, 1, 0], delay: [0, 60, .1, 1], secs: [0, 600, .5, 1], travel_ms: [0, 5000, 50, 0] };
+const LIMITS = { retries: [1, 10, 1, 0], verify_secs: [0.2, 30, .5, 1], rounds: [1, 999, 1, 0], round_wait: [0, 600, .5, 1], tolerance: [1, 100, 1, 0], cooldown: [1, 3600, 1, 0], delay: [0, 60, .1, 1], secs: [0, 600, .5, 1], travel_ms: [0, 5000, 50, 0] };
 const clampV = (k, v) => { const [mn, mx, , dp] = LIMITS[k]; v = parseFloat(String(v).replace(",", ".")); if (isNaN(v)) v = mn; v = Math.min(mx, Math.max(mn, v)); return dp ? Math.round(v * 10) / 10 : Math.round(v); };
 
 let saveTimer = null;
@@ -376,7 +398,7 @@ function render() {
   const p = P();
   dropdown($("presetDD"), {
     label: "Preset", value: p.id,
-    items: [...S.presets.map(x => ({ value: x.id, label: x.name })), { value: "@new", label: "New preset", sep: true }, { value: "@dup", label: "Duplicate" }, { value: "@ren", label: "Rename" }, ...(S.presets.length > 1 ? [{ value: "@del", label: "Delete this preset" }] : [])],
+    items: [...S.presets.map(x => ({ value: x.id, label: x.name })), { value: "@new", label: "New preset", sep: true }, { value: "@dup", label: "Duplicate" }, { value: "@ren", label: "Rename" }, { value: "@share", label: "Share as code" }, { value: "@import", label: "Add from code" }, ...(S.presets.length > 1 ? [{ value: "@del", label: "Delete this preset" }] : [])],
     onPick: presetAction,
   });
   $("summary").innerHTML = p.steps.length ? p.steps.map(s => esc(stepSummary(s))).join(' <span aria-hidden="true">&rarr;</span> ') : "No steps yet";
@@ -410,7 +432,9 @@ function renderSteps() {
       ${s.kind === "click" ? `
         <div class="row"><b class="big" style="font-size:18px">${s.x == null ? '<span class="muted" style="font-size:14px;font-weight:500">Spot not set</span>' : `${s.x}, ${s.y}`}</b><button class="btn sm" type="button" data-act="pick">${I.target}<span>${s.x == null ? "Set spot" : "Change"}</span></button></div>
         <div class="seg" role="group" aria-label="Mouse button">${["left", "right", "double"].map(k => `<button type="button" data-btn="${k}" aria-pressed="${s.button === k}">${{ left: "Left", right: "Right", double: "Double" }[k]}</button>`).join("")}</div>
-        <div class="two"><div><span class="label">Mouse travel</span><div class="stepper" data-k="travel_ms" data-label="Mouse travel in milliseconds"></div><div class="unit">ms to reach the spot (0 = jump)</div></div><div><span class="label">Pause after</span><div class="stepper" data-k="delay" data-label="Pause after, seconds"></div><div class="unit">seconds</div></div></div>` : ""}
+        <div class="two"><div><span class="label">Mouse travel</span><div class="stepper" data-k="travel_ms" data-label="Mouse travel in milliseconds"></div><div class="unit">ms to reach the spot (0 = jump)</div></div><div><span class="label">Pause after</span><div class="stepper" data-k="delay" data-label="Pause after, seconds"></div><div class="unit">seconds</div></div></div>
+        <button class="switch" role="switch" type="button" data-act="verify" aria-checked="${!!s.verify}"><span class="t"><b>Make sure it worked</b><span class="hint">If nothing changes near the click, try again</span></span><span class="track"></span></button>
+        ${s.verify ? `<div class="two"><div><span class="label">Extra tries</span><div class="stepper" data-k="retries" data-label="Extra tries"></div></div><div><span class="label">Wait for a change</span><div class="stepper" data-k="verify_secs" data-label="Wait for a change, seconds"></div><div class="unit">seconds</div></div></div>` : ""}` : ""}
       ${s.kind === "key" ? `
         <div class="dd" data-keydd></div>
         <div class="chips" role="group" aria-label="Hold with">${["Ctrl", "Shift", "Alt", "Cmd"].map(m => `<button type="button" class="chip" data-mod="${m}" aria-pressed="${s.mods.includes(m)}">${modLabel(m)}</button>`).join("")}</div>
@@ -440,13 +464,14 @@ $("stepList").addEventListener("click", async e => {
   else if (b.dataset.act === "down" && i < p.steps.length - 1) { [p.steps[i + 1], p.steps[i]] = [p.steps[i], p.steps[i + 1]]; }
   else if (b.dataset.act === "del") { p.steps.splice(i, 1); }
   else if (b.dataset.act === "pick") { await pickSpot(el, s); return; }
+  else if (b.dataset.act === "verify") { s.verify = !s.verify; if (s.retries == null) s.retries = 2; if (s.verify_secs == null) s.verify_secs = 2; }
   else return;
   save(); renderSteps(); refreshSummary();
 });
 $("stepList").addEventListener("input", e => { if (e.target.dataset.text !== undefined) { const i = +e.target.closest(".step").dataset.i; P().steps[i].text = e.target.value; refreshSummary(); save(); } });
 $("addStep").addEventListener("click", () => {
   const p = P(); const last = p.steps[p.steps.length - 1];
-  p.steps.push({ kind: last && last.kind === "click" ? "key" : "click", x: null, y: null, button: "left", key: "Enter", mods: [], text: "", secs: 1, delay: .3, travel_ms: 0 });
+  p.steps.push({ kind: last && last.kind === "click" ? "key" : "click", x: null, y: null, button: "left", key: "Enter", mods: [], text: "", secs: 1, delay: .3, travel_ms: 0, verify: false, retries: 2, verify_secs: 2 });
   save(); renderSteps(); refreshSummary();
   $("stepList").lastElementChild?.scrollIntoView({ block: "nearest" });
 });
@@ -558,6 +583,13 @@ $("runBtn").addEventListener("click", async () => {
   try { running = true; renderRun(); setStatus("busy", "Starting...", 0, P().rounds); await call("run"); }
   catch (e) { running = false; renderRun(); setStatus("error", String(e)); }
 });
+$("previewBtn").addEventListener("click", async () => {
+  await save(true);
+  try { const n = await call("preview_steps"); $("previewMsg").textContent = `Showing ${n} click spot${n > 1 ? "s" : ""} on screen`; $("previewMsg").className = "hint"; }
+  catch (e) { $("previewMsg").textContent = String(e); $("previewMsg").className = "hint err-text"; }
+  $("previewMsg").hidden = false; setTimeout(() => $("previewMsg").hidden = true, 3500);
+});
+$("miniBtn").addEventListener("click", async () => { await save(true); try { await call("show_mini"); } catch (e) { setStatus("error", String(e)); } });
 document.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => selectTab(b.dataset.go)));
 
 // ---------- log ----------
@@ -575,28 +607,73 @@ $("clearLog").addEventListener("click", async () => { await call("clear_log"); L
 
 // ---------- presets ----------
 let dlgResolve = null;
-function ask(title, value, okLabel = "Save", message = "") {
-  $("dlgTitle").textContent = title; $("dlgInput").value = value; $("dlgInput").hidden = value === null; $("dlgMsg").textContent = message; $("dlgOk").textContent = okLabel; $("dlg").hidden = false;
-  setTimeout(() => (value === null ? $("dlgOk") : $("dlgInput")).focus(), 0);
+function ask(title, value, okLabel = "Save", message = "", code = null) {
+  $("dlgTitle").textContent = title; $("dlgInput").value = value ?? ""; $("dlgInput").hidden = value === null || code !== null;
+  $("dlgCode").hidden = code === null; $("dlgCode").value = code ?? ""; $("dlgCode").readOnly = !!code;
+  $("dlgMsg").textContent = message; $("dlgMsg").className = "hint"; $("dlgOk").textContent = okLabel; $("dlg").hidden = false;
+  $("dlgCancel").hidden = !!code || (value === null && okLabel !== "Delete");
+  setTimeout(() => (code !== null ? $("dlgCode") : value === null ? $("dlgOk") : $("dlgInput")).focus(), 0);
   return new Promise(r => dlgResolve = r);
 }
 const closeDlg = v => { $("dlg").hidden = true; dlgResolve && dlgResolve(v); dlgResolve = null; };
 $("dlgCancel").addEventListener("click", () => closeDlg(undefined));
-$("dlgOk").addEventListener("click", () => closeDlg($("dlgInput").hidden ? true : $("dlgInput").value.trim()));
-$("dlg").addEventListener("keydown", e => { if (e.key === "Escape") closeDlg(undefined); if (e.key === "Enter" && e.target === $("dlgInput")) $("dlgOk").click(); if (e.key === "Tab") { const f = [...$("dlg").querySelectorAll("input:not([hidden]),button")]; const i = f.indexOf(document.activeElement); if (e.shiftKey && i <= 0) { f[f.length - 1].focus(); e.preventDefault(); } else if (!e.shiftKey && i === f.length - 1) { f[0].focus(); e.preventDefault(); } } });
+$("dlgOk").addEventListener("click", () => closeDlg(!$("dlgCode").hidden ? $("dlgCode").value.trim() : $("dlgInput").hidden ? true : $("dlgInput").value.trim()));
+$("dlg").addEventListener("keydown", e => { if (e.key === "Escape") closeDlg(undefined); if (e.key === "Enter" && e.target === $("dlgInput")) $("dlgOk").click(); if (e.key === "Tab") { const f = [...$("dlg").querySelectorAll("input:not([hidden]),textarea:not([hidden]),button")]; const i = f.indexOf(document.activeElement); if (e.shiftKey && i <= 0) { f[f.length - 1].focus(); e.preventDefault(); } else if (!e.shiftKey && i === f.length - 1) { f[0].focus(); e.preventDefault(); } } });
 const newId = () => "p" + Date.now().toString(36);
 async function presetAction(v) {
   const p = P();
-  if (v === "@new") { const n = await ask("New preset name", "My preset"); if (!n) return; const np = { id: newId(), name: n.slice(0, 40), steps: [{ kind: "click", x: null, y: null, button: "left", key: "Enter", mods: [], text: "", secs: 1, delay: .3, travel_ms: 0 }, { kind: "key", x: null, y: null, button: "left", key: "Enter", mods: [], text: "", secs: 1, delay: .3, travel_ms: 0 }], rounds: 2, round_wait: 2, watch: { x: null, y: null, w: 1, h: 1, color: null, grid: [], gw: 0, gh: 0, mode: "match", tolerance: 12, cooldown: 10 } }; S.presets.push(np); S.active = np.id; }
+  if (v === "@new") { const n = await ask("New preset name", "My preset"); if (!n) return; const np = { id: newId(), name: n.slice(0, 40), steps: [{ kind: "click", x: null, y: null, button: "left", key: "Enter", mods: [], text: "", secs: 1, delay: .3, travel_ms: 0, verify: false, retries: 2, verify_secs: 2 }, { kind: "key", x: null, y: null, button: "left", key: "Enter", mods: [], text: "", secs: 1, delay: .3, travel_ms: 0, verify: false, retries: 2, verify_secs: 2 }], rounds: 2, round_wait: 2, watch: { x: null, y: null, w: 1, h: 1, color: null, grid: [], gw: 0, gh: 0, mode: "match", tolerance: 12, cooldown: 10 } }; S.presets.push(np); S.active = np.id; }
   else if (v === "@dup") { const np = structuredClone(p); np.id = newId(); np.name = (p.name + " copy").slice(0, 40); S.presets.push(np); S.active = np.id; }
+  else if (v === "@share") { await sharePreset(p); return; }
+  else if (v === "@import") { await importPreset(); return; }
   else if (v === "@ren") { const n = await ask("Rename preset", p.name); if (!n) return; p.name = n.slice(0, 40); }
   else if (v === "@del") { const ok = await ask(`Delete "${p.name}"?`, null, "Delete", "Its steps and Watch setup will be removed."); if (!ok) return; S.presets = S.presets.filter(x => x.id !== p.id); S.active = S.presets[0].id; }
   else { if (v === S.active) return; S.active = v; $("stCount").textContent = ""; setStatus("", "Ready", 0, 0); $("bar").style.width = "0"; }
   await save(true); render();
 }
 
+// ---------- share codes ----------
+const b64 = bytes => btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const unb64 = t => Uint8Array.from(atob(t.replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0));
+async function pipe(bytes, stream) { return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer()); }
+async function toCode(p) {
+  const data = { v: 1, name: p.name, steps: p.steps, rounds: p.rounds, round_wait: p.round_wait, watch: p.watch };
+  const raw = new TextEncoder().encode(JSON.stringify(data));
+  if (window.CompressionStream) return "TAPLINE1Z." + b64(await pipe(raw, new CompressionStream("deflate-raw")));
+  return "TAPLINE1." + b64(raw);
+}
+async function fromCode(code) {
+  code = code.replace(/\s+/g, "");
+  const m = code.match(/^TAPLINE1(Z?)\.([A-Za-z0-9_-]+)$/);
+  if (!m) throw new Error("That doesn't look like a Tapline code");
+  let bytes = unb64(m[2]);
+  if (m[1]) { if (!window.DecompressionStream) throw new Error("This computer can't open compressed codes"); bytes = await pipe(bytes, new DecompressionStream("deflate-raw")); }
+  const d = JSON.parse(new TextDecoder().decode(bytes));
+  if (!d || !Array.isArray(d.steps)) throw new Error("That code has no steps");
+  return d;
+}
+let lastShareCode = "";
+async function sharePreset(p) {
+  const code = await toCode(p); lastShareCode = code;
+  let copied = false; try { await call("copy_text", { text: code }); copied = true; } catch {}
+  await ask(`Share "${p.name}"`, null, "Done", copied ? "Copied. Paste it in a chat; the other person uses Add from code." : "Select the code and copy it.", code);
+}
+async function importPreset() {
+  const code = await ask("Add from code", "", "Add", "Paste a Tapline code.", "");
+  if (!code) return;
+  try {
+    const d = await fromCode(code);
+    const np = { id: newId(), name: String(d.name || "Shared preset").slice(0, 40), steps: d.steps, rounds: d.rounds ?? 2, round_wait: d.round_wait ?? 2, watch: d.watch || { x: null, y: null, w: 1, h: 1, color: null, grid: [], gw: 0, gh: 0, mode: "match", tolerance: 12, cooldown: 10 } };
+    S.presets.push(np); S.active = np.id; await save(true); render(); selectTab("steps");
+  } catch (e) { await ask("Couldn't add that code", null, "OK", String(e.message || e)); }
+}
+
 // ---------- settings ----------
+const ACCENTS = [["gold", "Gold", "#d4a84b"], ["blue", "Blue", "#6aa8ff"], ["green", "Green", "#5cc99a"], ["rose", "Rose", "#f08aa0"]];
+function applyAccent() { document.documentElement.dataset.accent = S.accent || "gold"; }
 function renderSettings() {
+  applyAccent();
+  $("accents").innerHTML = ACCENTS.map(([k, n, c]) => `<button type="button" class="sw" role="radio" aria-checked="${(S.accent || "gold") === k}" aria-label="${n}" title="${n}" data-accent-pick="${k}" tabindex="${(S.accent || "gold") === k ? 0 : -1}"><span style="background:${c}"></span></button>`).join("");
   document.querySelectorAll("[data-set]").forEach(b => b.setAttribute("aria-checked", !!S[b.dataset.set]));
   const parts = S.hotkey.split("+"), key = parts.pop(), mods = parts;
   $("hkMods").innerHTML = ["Ctrl", "Shift", "Alt"].map(m => `<button type="button" class="chip" data-hk="${m}" aria-pressed="${mods.includes(m)}">${modLabel(m)}</button>`).join("");
@@ -607,6 +684,8 @@ function renderSettings() {
   $("trayHint").textContent = plat === "mac" ? "Closing the window hides it. Quit from the menu bar icon." : "Closing the window hides it. Quit from the tray icon.";
 }
 async function setHotkey(text) { const old = S.hotkey; S.hotkey = text; try { S = await call("save_settings", { settings: S }); renderSettings(); renderRun(); } catch (e) { S.hotkey = old; renderSettings(); toast(String(e)); } }
+$("accents").addEventListener("click", e => { const b = e.target.closest("[data-accent-pick]"); if (!b) return; S.accent = b.dataset.accentPick; save(); renderSettings(); $("accents").querySelector("[aria-checked=true]").focus(); });
+$("accents").addEventListener("keydown", e => { const keys = ACCENTS.map(a => a[0]); let i = keys.indexOf(S.accent || "gold"); if (e.key === "ArrowRight" || e.key === "ArrowDown") i = (i + 1) % 4; else if (e.key === "ArrowLeft" || e.key === "ArrowUp") i = (i + 3) % 4; else return; e.preventDefault(); S.accent = keys[i]; save(); renderSettings(); $("accents").querySelector("[aria-checked=true]").focus(); });
 $("hkMods").addEventListener("click", e => { const b = e.target.closest("[data-hk]"); if (!b) return; const parts = S.hotkey.split("+"), key = parts.pop(); const m = b.dataset.hk; const mods = parts.includes(m) ? parts.filter(x => x !== m) : [...parts, m]; setHotkey([...["Ctrl", "Shift", "Alt"].filter(x => mods.includes(x)), key].join("+")); });
 document.querySelectorAll("[data-set]").forEach(b => b.addEventListener("click", () => { const k = b.dataset.set; S[k] = !S[k]; b.setAttribute("aria-checked", S[k]); save(); }));
 $("autostart").addEventListener("click", async () => { const want = $("autostart").getAttribute("aria-checked") !== "true"; try { const r = await call("set_autostart", { on: want }); $("autostart").setAttribute("aria-checked", r); } catch (e) { $("updMsg").textContent = String(e); $("updMsg").className = "hint err-text"; } });
@@ -648,7 +727,7 @@ function chime() {
 // ---------- start ----------
 (async () => {
   const all = await call("get_all");
-  S = all.settings; plat = all.platform; ver = all.version; running = all.running; watching = all.watching; LOG = all.log;
+  S = all.settings; plat = all.platform; applyAccent(); ver = all.version; running = all.running; watching = all.watching; LOG = all.log;
   $("autostart").setAttribute("aria-checked", all.autostart);
   render(); setWatchStatus({ on: watching, state: watching ? "armed" : "off", text: watching ? "Watching for the snapshot" : "Watch is off" });
   $("recMac").hidden = plat !== "mac";

@@ -18,6 +18,7 @@ use tauri::{AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder
 use tauri_plugin_autostart::ManagerExt as _;
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Shortcut, ShortcutState};
 use tauri_plugin_notification::NotificationExt;
+use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_opener::OpenerExt;
 
 // ---------------------------------------------------------------- settings
@@ -35,6 +36,9 @@ struct Step {
     secs: f64,
     delay: f64, // pause after this step
     travel_ms: u32, // time for the mouse to glide to the spot; 0 = jump
+    verify: bool,     // click steps: make sure the screen changed, retry if not
+    retries: u32,     // extra tries
+    verify_secs: f64, // how long to wait for a change
 }
 
 impl Default for Step {
@@ -50,6 +54,9 @@ impl Default for Step {
             secs: 1.0,
             delay: 0.3,
             travel_ms: 0,
+            verify: false,
+            retries: 2,
+            verify_secs: 2.0,
         }
     }
 }
@@ -129,6 +136,7 @@ struct Settings {
     notify: bool,
     tray_on_close: bool,
     corner_stop: bool,
+    accent: String,
 }
 
 impl Default for Settings {
@@ -141,6 +149,7 @@ impl Default for Settings {
             notify: true,
             tray_on_close: true,
             corner_stop: true,
+            accent: "gold".into(),
         }
     }
 }
@@ -177,7 +186,12 @@ impl Settings {
                 s.delay = s.delay.clamp(0.0, 60.0);
                 s.secs = s.secs.clamp(0.0, 600.0);
                 s.travel_ms = s.travel_ms.min(5000);
+                s.retries = s.retries.clamp(1, 10);
+                s.verify_secs = s.verify_secs.clamp(0.2, 30.0);
             }
+        }
+        if !["gold", "blue", "green", "rose"].contains(&self.accent.as_str()) {
+            self.accent = "gold".into();
         }
         if self.hotkey.trim().is_empty() {
             self.hotkey = "F8".into();
@@ -220,7 +234,8 @@ struct Shared {
     hotkey: Mutex<Option<Shortcut>>,
     quiet_until: Mutex<Instant>,
     recording: AtomicBool,
-    rec_stop: AtomicBool, // ignore our own key presses reaching the global shortcuts
+    rec_stop: AtomicBool,
+    ghost: Mutex<std::collections::HashMap<String, serde_json::Value>>, // ignore our own key presses reaching the global shortcuts
     tray: Mutex<Option<(MenuItem<Wry>, MenuItem<Wry>)>>,
 }
 
@@ -441,39 +456,45 @@ fn start_run(app: &AppHandle, trigger: &str) -> Result<(), String> {
                     if typing {
                         *sh.quiet_until.lock().unwrap() = Instant::now() + Duration::from_secs(30);
                     }
-                    let res: Result<(), enigo::InputError> = match st.kind.as_str() {
-                        "click" => (|| {
-                            let (tx, ty) = (st.x.unwrap_or(0), st.y.unwrap_or(0));
-                            if st.travel_ms > 0 {
-                                let (sx, sy) = enigo.location().unwrap_or((tx, ty));
-                                let n = (st.travel_ms / 8).max(1);
-                                let each = Duration::from_millis(st.travel_ms as u64) / n;
-                                for k in 1..=n {
-                                    if sh.stop.load(Ordering::SeqCst) {
+                    if st.kind == "click" && st.verify {
+                        let (tx, ty) = (st.x.unwrap_or(0), st.y.unwrap_or(0));
+                        // look at the area around the click: buttons, popups and menus show up there
+                        let snap = || pixel::read_area(tx - 180, ty - 120, 360, 240).map(|(px, pw, ph)| pixel::fingerprint(&px, pw, ph, 40).0);
+                        let tries = st.retries.clamp(1, 10) + 1;
+                        let mut worked = false;
+                        for attempt in 1..=tries {
+                            let before = snap().map_err(|e| format!("Step {}: can't check the screen. {e}", i + 1))?;
+                            click_at(&mut enigo, st, &placed, &sh.stop).map_err(|e| format!("Could not do step {}: {e}", i + 1))?;
+                            let end = Instant::now() + Duration::from_secs_f64(st.verify_secs.max(0.2));
+                            while Instant::now() < end {
+                                if stop_now(&enigo) {
+                                    return Ok(false);
+                                }
+                                thread::sleep(Duration::from_millis(150));
+                                if let Ok(now) = snap() {
+                                    if pixel::diff(&before, &now) > 0.02 {
+                                        worked = true;
                                         break;
                                     }
-                                    let t = k as f64 / n as f64;
-                                    let e = t * t * (3.0 - 2.0 * t); // ease in and out
-                                    let x = sx as f64 + (tx - sx) as f64 * e;
-                                    let y = sy as f64 + (ty - sy) as f64 * e;
-                                    enigo.move_mouse(x.round() as i32, y.round() as i32, Coordinate::Abs)?;
-                                    thread::sleep(each);
                                 }
                             }
-                            enigo.move_mouse(tx, ty, Coordinate::Abs)?;
-                            placed.set(Some((tx, ty)));
-                            thread::sleep(Duration::from_millis(40));
-                            match st.button.as_str() {
-                                "right" => enigo.button(Button::Right, Direction::Click)?,
-                                "double" => {
-                                    enigo.button(Button::Left, Direction::Click)?;
-                                    thread::sleep(Duration::from_millis(60));
-                                    enigo.button(Button::Left, Direction::Click)?;
-                                }
-                                _ => enigo.button(Button::Left, Direction::Click)?,
+                            if worked {
+                                break;
                             }
-                            Ok(())
-                        })(),
+                            if attempt < tries {
+                                emit("busy", format!("Step {}: nothing changed, trying again ({} of {})", i + 1, attempt + 1, tries), done, false);
+                            }
+                        }
+                        if !worked {
+                            return Err(format!("Step {}: nothing changed after {} tries", i + 1, tries));
+                        }
+                        if !pause(&enigo, st.delay) {
+                            return Ok(false);
+                        }
+                        continue;
+                    }
+                    let res: Result<(), enigo::InputError> = match st.kind.as_str() {
+                        "click" => click_at(&mut enigo, st, &placed, &sh.stop),
                         "key" => (|| {
                             let mods: Vec<Key> = st.mods.iter().filter_map(|m| mod_from(m)).collect();
                             for m in &mods {
@@ -519,6 +540,9 @@ fn start_run(app: &AppHandle, trigger: &str) -> Result<(), String> {
             Ok(false) => ("error", format!("Stopped after {done} of {total}"), "stopped"),
             Err(e) => ("error", e, "error"),
         };
+        if result == "error" && trigger == "watch" && sh.settings.lock().map(|s| s.notify).unwrap_or(false) {
+            let _ = app.notification().builder().title("Tapline stopped").body(text.clone()).show();
+        }
         emit(kind, text, done, true);
         sh.add_log(LogEntry { at: now_ms(), preset: preset.name.clone(), trigger: trigger.clone(), done, total, result: result.into() });
         let _ = app.emit("log", ());
@@ -526,6 +550,39 @@ fn start_run(app: &AppHandle, trigger: &str) -> Result<(), String> {
         let _ = app.global_shortcut().unregister(esc());
         refresh_tray(&app);
     });
+    Ok(())
+}
+
+fn click_at(enigo: &mut Enigo, st: &Step, placed: &std::cell::Cell<Option<(i32, i32)>>, stop: &AtomicBool) -> Result<(), enigo::InputError> {
+    let (tx, ty) = (st.x.unwrap_or(0), st.y.unwrap_or(0));
+    if st.travel_ms > 0 {
+        let (sx, sy) = enigo.location().unwrap_or((tx, ty));
+        let n = (st.travel_ms / 8).max(1);
+        let each = Duration::from_millis(st.travel_ms as u64) / n;
+        for k in 1..=n {
+            if stop.load(Ordering::SeqCst) {
+                break;
+            }
+            let t = k as f64 / n as f64;
+            let e = t * t * (3.0 - 2.0 * t); // ease in and out
+            let x = sx as f64 + (tx - sx) as f64 * e;
+            let y = sy as f64 + (ty - sy) as f64 * e;
+            enigo.move_mouse(x.round() as i32, y.round() as i32, Coordinate::Abs)?;
+            thread::sleep(each);
+        }
+    }
+    enigo.move_mouse(tx, ty, Coordinate::Abs)?;
+    placed.set(Some((tx, ty)));
+    thread::sleep(Duration::from_millis(40));
+    match st.button.as_str() {
+        "right" => enigo.button(Button::Right, Direction::Click)?,
+        "double" => {
+            enigo.button(Button::Left, Direction::Click)?;
+            thread::sleep(Duration::from_millis(60));
+            enigo.button(Button::Left, Direction::Click)?;
+        }
+        _ => enigo.button(Button::Left, Direction::Click)?,
+    }
     Ok(())
 }
 
@@ -766,6 +823,7 @@ fn save_settings(app: AppHandle, sh: Sh, mut settings: Settings) -> Result<Setti
     *sh.settings.lock().unwrap() = settings.clone();
     sh.save();
     refresh_tray(&app);
+    let _ = app.emit("settings", ());
     match err {
         Some(e) => Err(e),
         None => Ok(settings),
@@ -1129,6 +1187,147 @@ fn stop_record(sh: Sh) {
     sh.rec_stop.store(true, Ordering::SeqCst);
 }
 
+
+// ---------------------------------------------------------------- ghost preview
+
+/// Converts a spot in Tapline's screen coordinates to CSS pixels inside a monitor, if it is on it.
+fn on_monitor(m: &tauri::Monitor, x: i32, y: i32) -> Option<(f64, f64)> {
+    let k = m.scale_factor();
+    let (p, z) = (m.position(), m.size());
+    if cfg!(target_os = "macos") {
+        // spots are in points, monitor values in physical pixels
+        let (mx, my, mw, mh) = (p.x as f64 / k, p.y as f64 / k, z.width as f64 / k, z.height as f64 / k);
+        let (fx, fy) = (x as f64, y as f64);
+        (fx >= mx && fx < mx + mw && fy >= my && fy < my + mh).then(|| (fx - mx, fy - my))
+    } else {
+        let inside = x >= p.x && x < p.x + z.width as i32 && y >= p.y && y < p.y + z.height as i32;
+        inside.then(|| ((x - p.x) as f64 / k, (y - p.y) as f64 / k))
+    }
+}
+
+#[tauri::command]
+async fn preview_steps(app: AppHandle) -> Result<usize, String> {
+    let sh = app.state::<Arc<Shared>>().inner().clone();
+    let (preset, accent) = {
+        let s = sh.settings.lock().unwrap();
+        (s.active_preset(), s.accent.clone())
+    };
+    let spots: Vec<(usize, i32, i32, String)> = preset
+        .steps
+        .iter()
+        .enumerate()
+        .filter(|(_, st)| st.kind == "click" && st.x.is_some() && st.y.is_some())
+        .map(|(i, st)| (i + 1, st.x.unwrap(), st.y.unwrap(), st.button.clone()))
+        .collect();
+    if spots.is_empty() {
+        return Err("No click spots to show yet".into());
+    }
+    let monitors = app.available_monitors().map_err(|e| e.to_string())?;
+    let mut opened = Vec::new();
+    for (mi, m) in monitors.iter().enumerate() {
+        let here: Vec<serde_json::Value> = spots
+            .iter()
+            .filter_map(|(n, x, y, b)| on_monitor(m, *x, *y).map(|(cx, cy)| serde_json::json!({ "n": n, "x": cx, "y": cy, "button": b })))
+            .collect();
+        if here.is_empty() {
+            continue;
+        }
+        let label = format!("ghost-{mi}");
+        if let Some(old) = app.get_webview_window(&label) {
+            let _ = old.close();
+        }
+        sh.ghost.lock().unwrap().insert(label.clone(), serde_json::json!({ "spots": here, "accent": accent }));
+        let k = m.scale_factor();
+        let (p, z) = (m.position(), m.size());
+        let w = WebviewWindowBuilder::new(&app, &label, WebviewUrl::App("ghost.html".into()))
+            .title("Preview")
+            .decorations(false)
+            .transparent(true)
+            .always_on_top(true)
+            .skip_taskbar(true)
+            .resizable(false)
+            .shadow(false)
+            .focused(false)
+            .position(p.x as f64 / k, p.y as f64 / k)
+            .inner_size(z.width as f64 / k, z.height as f64 / k)
+            .build()
+            .map_err(|e| format!("Could not show the preview: {e}"))?;
+        let _ = w.set_ignore_cursor_events(true);
+        opened.push(label);
+    }
+    let app2 = app.clone();
+    thread::spawn(move || {
+        thread::sleep(Duration::from_millis(3200));
+        for l in opened {
+            if let Some(w) = app2.get_webview_window(&l) {
+                let _ = w.close();
+            }
+            app2.state::<Arc<Shared>>().ghost.lock().unwrap().remove(&l);
+        }
+    });
+    Ok(spots.len())
+}
+
+#[tauri::command]
+fn ghost_data(window: tauri::WebviewWindow, sh: Sh) -> serde_json::Value {
+    sh.ghost.lock().unwrap().get(window.label()).cloned().unwrap_or(serde_json::json!({ "spots": [] }))
+}
+
+// ---------------------------------------------------------------- mini bar
+
+fn open_mini(app: &AppHandle) -> Result<(), String> {
+    if let Some(w) = app.get_webview_window("mini") {
+        let _ = w.show();
+        let _ = w.set_focus();
+    } else {
+        let (x, y) = app
+            .primary_monitor()
+            .ok()
+            .flatten()
+            .map(|m| {
+                let k = m.scale_factor();
+                ((m.position().x as f64 + m.size().width as f64) / k - 360.0, m.position().y as f64 / k + 48.0)
+            })
+            .unwrap_or((40.0, 40.0));
+        WebviewWindowBuilder::new(app, "mini", WebviewUrl::App("mini.html".into()))
+            .title("Tapline")
+            .decorations(false)
+            .transparent(true)
+            .always_on_top(true)
+            .skip_taskbar(true)
+            .resizable(false)
+            .shadow(false)
+            .inner_size(336.0, 60.0)
+            .position(x, y)
+            .build()
+            .map_err(|e| format!("Could not open the mini bar: {e}"))?;
+    }
+    if let Some(main) = app.get_webview_window("main") {
+        let _ = main.hide();
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn show_mini(app: AppHandle) -> Result<(), String> {
+    open_mini(&app)
+}
+
+#[tauri::command]
+fn close_mini(app: AppHandle, open_main: bool) {
+    if let Some(w) = app.get_webview_window("mini") {
+        let _ = w.close();
+    }
+    if open_main {
+        show_main(&app);
+    }
+}
+
+#[tauri::command]
+fn copy_text(app: AppHandle, text: String) -> Result<(), String> {
+    app.clipboard().write_text(text).map_err(|e| e.to_string())
+}
+
 // ---------------------------------------------------------------- app
 
 fn load_settings(dir: &PathBuf) -> Settings {
@@ -1162,6 +1361,7 @@ pub fn run_app() {
     tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, None))
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
@@ -1202,6 +1402,7 @@ pub fn run_app() {
                 quiet_until: Mutex::new(Instant::now()),
                 recording: AtomicBool::new(false),
                 rec_stop: AtomicBool::new(false),
+                ghost: Mutex::new(Default::default()),
                 tray: Mutex::new(None),
             });
             app.manage(shared.clone());
@@ -1216,9 +1417,10 @@ pub fn run_app() {
             let show_i = MenuItem::with_id(app, "show", "Show Tapline", true, None::<&str>)?;
             let run_i = MenuItem::with_id(app, "run", "Run", true, None::<&str>)?;
             let watch_i = MenuItem::with_id(app, "watch", "Turn Watch on", true, None::<&str>)?;
+            let mini_i = MenuItem::with_id(app, "mini", "Mini bar", true, None::<&str>)?;
             let sep = PredefinedMenuItem::separator(app)?;
             let quit_i = MenuItem::with_id(app, "quit", "Quit Tapline", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&show_i, &run_i, &watch_i, &sep, &quit_i])?;
+            let menu = Menu::with_items(app, &[&show_i, &mini_i, &run_i, &watch_i, &sep, &quit_i])?;
             *shared.tray.lock().unwrap() = Some((run_i.clone(), watch_i.clone()));
 
             let mut tray = TrayIconBuilder::with_id("main")
@@ -1227,6 +1429,9 @@ pub fn run_app() {
                 .show_menu_on_left_click(cfg!(target_os = "macos"))
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "show" => show_main(app),
+                    "mini" => {
+                        let _ = open_mini(app);
+                    }
                     "run" => toggle_run(app),
                     "watch" => {
                         let on = app.state::<Arc<Shared>>().watching.load(Ordering::SeqCst);
@@ -1274,6 +1479,11 @@ pub fn run_app() {
             snip_done,
             start_record,
             stop_record,
+            preview_steps,
+            ghost_data,
+            show_mini,
+            close_mini,
+            copy_text,
             run,
             stop,
             set_watch,

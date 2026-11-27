@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <b>Version 1.2</b> &nbsp;·&nbsp; Free &nbsp;·&nbsp; Windows 10 and 11 &nbsp;·&nbsp; macOS 11 or later &nbsp;·&nbsp; <a href="https://hanyjr.github.io/tapline/">Website</a> &nbsp;·&nbsp; <a href="https://github.com/HanyJr/tapline/releases">All releases</a>
+  <b>Version 1.3</b> &nbsp;·&nbsp; Free &nbsp;·&nbsp; Windows 10 and 11 &nbsp;·&nbsp; macOS 11 or later &nbsp;·&nbsp; <a href="https://hanyjr.github.io/tapline/">Website</a> &nbsp;·&nbsp; <a href="https://github.com/HanyJr/tapline/releases">All releases</a>
 </p>
 
 <br>
@@ -25,6 +25,11 @@ Tapline runs a short sequence of clicks and key presses, repeats it as many time
 | **Watch mode** | Snip an area of the screen like a partial screenshot. Tapline starts the run when the area **looks like your snapshot** or **changes from it** (a new badge, number or color), then waits for it to go back to normal and a cooldown before it can fire again. |
 | **Record** | Press Record, do your clicks, keys and typing once, press Stop. Tapline turns it into steps with the same timing, saved as a new preset. |
 | **Steps** | Build a sequence: click (left, right or double), press a key with Ctrl / Shift / Alt / Cmd, type text, or wait. Each step has its own pause. |
+| **Make sure it worked** | For any click, Tapline checks that something changed near it, such as a popup opening or a button changing. If not, it clicks again, up to the number of tries you set, and stops with a clear message if it still didn't work. |
+| **Ghost preview** | Press Preview to see numbered markers and the mouse path on your screen for 3 seconds, without clicking anything. |
+| **Mini bar** | A small floating bar with the count, Watch status and Run/Stop. Open the full window only when you need it. |
+| **Share as code** | Turn a preset into a short code, paste it in a chat, and a teammate adds the same setup with Add from code. |
+| **Accent colors** | Gold, blue, green or rose, in light and dark mode. |
 | **Mouse travel time** | Set how many milliseconds the mouse takes to glide to each spot, or 0 to jump instantly. |
 | **Rounds and timing** | Repeat 1 to 999 times, with 0 seconds to 10 minutes between rounds. |
 | **Presets** | Save several setups, such as "New leads" and "Refresh queue", and switch in one click. |

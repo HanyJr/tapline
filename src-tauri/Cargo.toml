@@ -1,6 +1,6 @@
 [package]
 name = "tapline"
-version = "1.2.0"
+version = "1.3.0"
 description = "Tapline - repeat a click and Enter, as many times as you need"
 authors = ["HanyJr"]
 edition = "2021"
@@ -21,6 +21,7 @@ enigo = "0.6"
 tauri-plugin-notification = "2"
 tauri-plugin-autostart = "2"
 tauri-plugin-opener = "2"
+tauri-plugin-clipboard-manager = "2"
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_Graphics_Gdi", "Win32_Foundation", "Win32_UI_Input_KeyboardAndMouse"] }

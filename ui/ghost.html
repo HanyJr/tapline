@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Preview</title>
+<style>
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; pointer-events: none;
+    font: 700 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; }
+  :root { --a: #d4a84b; }
+  :root[data-accent=blue] { --a: #6aa8ff; } :root[data-accent=green] { --a: #5cc99a; } :root[data-accent=rose] { --a: #f08aa0; }
+  svg { position: fixed; inset: 0; width: 100%; height: 100%; }
+  .path { fill: none; stroke: var(--a); stroke-width: 3; stroke-dasharray: 2 9; stroke-linecap: round; opacity: .9;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); animation: draw 1.2s ease-out both; }
+  @keyframes draw { from { stroke-dashoffset: 300; opacity: 0 } to { stroke-dashoffset: 0; opacity: .9 } }
+  .spot { position: fixed; transform: translate(-50%, -50%); animation: pop .35s cubic-bezier(.3, 1.6, .5, 1) both; }
+  .spot i { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px; border-radius: 50%;
+    border: 2px solid var(--a); animation: ring 1.1s ease-out infinite; }
+  .spot b { position: relative; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%;
+    background: var(--a); color: #0a1422; box-shadow: 0 4px 14px rgba(0,0,0,.45); }
+  .spot small { position: absolute; left: 50%; top: 22px; transform: translateX(-50%); white-space: nowrap; font-size: 11px;
+    color: #e7ecf2; background: #0e1b2c; padding: 2px 7px; border-radius: 6px; }
+  @keyframes pop { from { transform: translate(-50%, -50%) scale(.2); opacity: 0 } }
+  @keyframes ring { from { transform: scale(.55); opacity: 1 } to { transform: scale(1.35); opacity: 0 } }
+  body.out { transition: opacity .35s; opacity: 0; }
+  @media (prefers-reduced-motion: reduce) { .path, .spot, .spot i { animation: none !important; } }
+</style>
+</head>
+<body>
+<svg id="svg" aria-hidden="true"></svg>
+<div id="spots"></div>
+<script>
+{
+  const T = window.__TAURI__;
+  const label = { right: "Right-click", double: "Double-click" };
+  const show = d => {
+    document.documentElement.dataset.accent = d.accent || "gold";
+    const s = d.spots || [];
+    if (s.length > 1) document.getElementById("svg").innerHTML = `<path class="path" d="M ${s.map(p => `${p.x} ${p.y}`).join(" L ")}"/>`;
+    document.getElementById("spots").innerHTML = s.map((p, i) =>
+      `<div class="spot" style="left:${p.x}px;top:${p.y}px;animation-delay:${i * 120}ms"><i></i><b>${Number(p.n)}</b>${label[p.button] ? `<small>${label[p.button]}</small>` : ""}</div>`).join("");
+    setTimeout(() => document.body.classList.add("out"), 2700);
+  };
+  if (T) T.core.invoke("ghost_data").then(show);
+  else show({ spots: [{ n: 1, x: 220, y: 160 }, { n: 2, x: 520, y: 300, button: "double" }, { n: 4, x: 760, y: 220 }] });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tapline</title>
+<style>
+  :root { --bg: #0e1b2c; --raised: #15263c; --border: rgba(169,182,198,.22); --text: #e7ecf2; --muted: #a9b6c6;
+    --accent: #d4a84b; --accent-hover: #e0b85c; --on-accent: #0a1422; --danger: #f08a7e; --ok: #6fd3a0; --focus: #e0b85c; }
+  :root[data-accent=blue] { --accent: #6aa8ff; --accent-hover: #8dbcff; --focus: #8dbcff; }
+  :root[data-accent=green] { --accent: #5cc99a; --accent-hover: #7dd8b0; --focus: #7dd8b0; }
+  :root[data-accent=rose] { --accent: #f08aa0; --accent-hover: #f5a3b4; --focus: #f5a3b4; }
+  * { box-sizing: border-box; margin: 0; min-width: 0; }
+  html, body { height: 100%; background: transparent; overflow: hidden; user-select: none; -webkit-user-select: none;
+    font: 13px/1.3 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; color: var(--text); }
+  .bar { height: 100%; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 10px; border-radius: 16px;
+    background: var(--bg); border: 1px solid var(--border); cursor: default; }
+  img { width: 28px; height: 28px; flex: none; pointer-events: none; }
+  .info { flex: 1; display: grid; gap: 4px; pointer-events: none; }
+  .top { display: flex; justify-content: space-between; gap: 8px; }
+  .name { font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .count { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .st { color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .st.err { color: var(--danger); }
+  .meter { height: 3px; border-radius: 9px; background: var(--raised); overflow: hidden; }
+  .meter i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+  button { font: inherit; color: inherit; border: 1px solid var(--border); background: var(--raised); border-radius: 10px;
+    width: 34px; height: 34px; display: grid; place-items: center; cursor: pointer; flex: none; }
+  button:hover { border-color: var(--accent); }
+  button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  button svg { width: 15px; height: 15px; }
+  #run { background: var(--accent); color: var(--on-accent); border-color: transparent; width: 40px; }
+  #run:hover { background: var(--accent-hover); }
+  #run.stop { background: transparent; color: var(--danger); border-color: var(--danger); }
+  #watch[aria-pressed=true] { color: var(--ok); border-color: var(--ok); }
+  .ghost { background: transparent; border-color: transparent; width: 26px; color: var(--muted); }
+  .ghost:hover { color: var(--text); border-color: transparent; background: var(--raised); }
+</style>
+</head>
+<body>
+<div class="bar" data-tauri-drag-region>
+  <img src="logo.png" alt="">
+  <div class="info">
+    <div class="top"><span class="name" id="name">Tapline</span><span class="count" id="count"></span></div>
+    <span class="st" id="st">Ready</span>
+    <div class="meter"><i id="bar"></i></div>
+  </div>
+  <button id="watch" type="button" aria-pressed="false" aria-label="Watch mode" title="Watch mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+  <button id="run" type="button" aria-label="Run"></button>
+  <button id="expand" class="ghost" type="button" aria-label="Open full window" title="Open full window"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>
+  <button id="close" class="ghost" type="button" aria-label="Close mini bar" title="Close mini bar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+</div>
+<script>
+{
+  const T = window.__TAURI__;
+  const $ = id => document.getElementById(id);
+  const call = (c, a = {}) => T ? T.core.invoke(c, a) : Promise.resolve(c === "get_all" ? { settings: { presets: [{ id: "p1", name: "New leads", rounds: 3 }], active: "p1", accent: "gold" }, running: false, watching: false } : null);
+  const on = (e, f) => T && T.event.listen(e, f);
+  const PLAY = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"/></svg>';
+  const STOP = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
+  let running = false, watching = false, total = 0;
+  const setRun = r => { running = r; $("run").innerHTML = r ? STOP : PLAY; $("run").classList.toggle("stop", r); $("run").setAttribute("aria-label", r ? "Stop" : "Run"); };
+  const setWatch = w => { watching = w; $("watch").setAttribute("aria-pressed", w); };
+  const status = (t, err) => { $("st").textContent = t; $("st").className = "st" + (err ? " err" : ""); };
+  async function load() {
+    const a = await call("get_all");
+    const p = a.settings.presets.find(x => x.id === a.settings.active) || a.settings.presets[0];
+    document.documentElement.dataset.accent = a.settings.accent || "gold";
+    $("name").textContent = p.name; total = p.rounds; $("count").textContent = `0 / ${total}`;
+    setRun(a.running); setWatch(a.watching); if (a.watching) status("Watching");
+  }
+  $("run").addEventListener("click", async () => {
+    try { if (running) await call("stop"); else { setRun(true); status("Starting..."); await call("run"); } }
+    catch (e) { setRun(false); status(String(e), true); }
+  });
+  $("watch").addEventListener("click", async () => { try { await call("set_watch", { on: !watching }); } catch (e) { status(String(e), true); } });
+  $("expand").addEventListener("click", () => call("close_mini", { openMain: true }));
+  $("close").addEventListener("click", () => call("close_mini", { openMain: false }));
+  on("progress", ({ payload: p }) => {
+    status(p.text, p.kind === "error");
+    if (p.total) { $("count").textContent = `${p.done} / ${p.total}`; $("bar").style.width = `${p.done / p.total * 100}%`; }
+    setRun(!p.finished);
+  });
+  on("watch", ({ payload: w }) => { setWatch(!!w.on); if (!running) status(w.text, w.state === "error"); });
+  on("settings", load);
+  setRun(false); load();
+}
+</script>
+</body>
+</html>

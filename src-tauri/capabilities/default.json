@@ -4,9 +4,12 @@
   "description": "Main window permissions",
   "windows": [
     "main",
-    "snip"
+    "snip",
+    "mini",
+    "ghost-*"
   ],
   "permissions": [
-    "core:default"
+    "core:default",
+    "core:window:allow-start-dragging"
   ]
 }

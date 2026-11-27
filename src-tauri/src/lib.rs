@@ -1,6 +1,7 @@
 //! Tapline: run a sequence of clicks and keys, repeat it, and optionally start it
 //! automatically when a spot on screen turns a chosen color.
 
+mod input;
 mod pixel;
 
 use enigo::{Button, Coordinate, Direction, Enigo, Key, Keyboard, Mouse, Settings as EnigoSettings};
@@ -13,7 +14,7 @@ use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Emitter, Manager, State, WindowEvent, Wry};
+use tauri::{AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder, WindowEvent, Wry};
 use tauri_plugin_autostart::ManagerExt as _;
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Shortcut, ShortcutState};
 use tauri_plugin_notification::NotificationExt;
@@ -58,14 +59,36 @@ impl Default for Step {
 struct Watch {
     x: Option<i32>,
     y: Option<i32>,
-    color: Option<[u8; 3]>,
-    tolerance: u32, // 1..100
+    w: i32,
+    h: i32,
+    color: Option<[u8; 3]>, // 1.1 single-spot trigger, kept for older settings
+    grid: Vec<[u8; 3]>,     // small picture of the snapshot
+    gw: u32,
+    gh: u32,
+    mode: String,   // "match" = looks like the snapshot, "change" = differs from it
+    tolerance: u32, // % of the area that may differ, 1..100
     cooldown: f64,  // seconds
 }
 
 impl Default for Watch {
     fn default() -> Self {
-        Watch { x: None, y: None, color: None, tolerance: 12, cooldown: 10.0 }
+        Watch { x: None, y: None, w: 1, h: 1, color: None, grid: vec![], gw: 0, gh: 0, mode: "match".into(), tolerance: 12, cooldown: 10.0 }
+    }
+}
+
+impl Watch {
+    fn ready(&self) -> bool {
+        self.x.is_some() && self.y.is_some() && !self.grid.is_empty() && self.grid.len() == (self.gw * self.gh) as usize
+    }
+    /// Share of the area that differs from the snapshot right now, and whether that triggers.
+    fn probe(&self) -> Result<(f64, bool), String> {
+        let (x, y) = (self.x.unwrap_or(0), self.y.unwrap_or(0));
+        let (px, pw, ph) = pixel::read_area(x, y, self.w.max(1), self.h.max(1))?;
+        let (now, gw, gh) = pixel::fingerprint(&px, pw, ph, 40);
+        let d = if gw == self.gw && gh == self.gh { pixel::diff(&now, &self.grid) } else { 1.0 };
+        let limit = self.tolerance as f64 / 100.0;
+        let hit = if self.mode == "change" { d > limit } else { d <= limit };
+        Ok((d, hit))
     }
 }
 
@@ -135,6 +158,21 @@ impl Settings {
             p.round_wait = p.round_wait.clamp(0.0, 600.0);
             p.watch.tolerance = p.watch.tolerance.clamp(1, 100);
             p.watch.cooldown = p.watch.cooldown.clamp(1.0, 3600.0);
+            p.watch.w = p.watch.w.clamp(1, 1600);
+            p.watch.h = p.watch.h.clamp(1, 1200);
+            if p.watch.mode != "change" {
+                p.watch.mode = "match".into();
+            }
+            // settings from 1.1: one spot and one color
+            if p.watch.grid.is_empty() {
+                if let (Some(c), Some(_)) = (p.watch.color, p.watch.x) {
+                    p.watch.grid = vec![c];
+                    p.watch.gw = 1;
+                    p.watch.gh = 1;
+                    p.watch.w = 1;
+                    p.watch.h = 1;
+                }
+            }
             for s in &mut p.steps {
                 s.delay = s.delay.clamp(0.0, 60.0);
                 s.secs = s.secs.clamp(0.0, 600.0);
@@ -180,7 +218,9 @@ struct Shared {
     log: Mutex<Vec<LogEntry>>,
     dir: PathBuf,
     hotkey: Mutex<Option<Shortcut>>,
-    quiet_until: Mutex<Instant>, // ignore our own key presses reaching the global shortcuts
+    quiet_until: Mutex<Instant>,
+    recording: AtomicBool,
+    rec_stop: AtomicBool, // ignore our own key presses reaching the global shortcuts
     tray: Mutex<Option<(MenuItem<Wry>, MenuItem<Wry>)>>,
 }
 
@@ -501,7 +541,7 @@ struct WatchStatus {
     on: bool,
     state: &'static str, // armed | running | reset | cooldown | off | error
     text: String,
-    color: Option<[u8; 3]>,
+    diff: Option<f64>,
     matched: bool,
 }
 
@@ -513,13 +553,13 @@ fn start_watch(app: &AppHandle) -> Result<(), String> {
     let sh = app.state::<Arc<Shared>>().inner().clone();
     let preset = sh.settings.lock().unwrap().active_preset();
     let w = &preset.watch;
-    if w.x.is_none() || w.y.is_none() || w.color.is_none() {
-        return Err("Set the watch spot and trigger color first".into());
+    if !w.ready() {
+        return Err("Select the area to watch first".into());
     }
     if !pixel::has_permission(true) {
         return Err("Allow Tapline under Privacy & Security, Screen Recording, then reopen it".into());
     }
-    pixel::read(w.x.unwrap(), w.y.unwrap())?;
+    w.probe()?;
 
     let gen = sh.watch_gen.fetch_add(1, Ordering::SeqCst) + 1;
     sh.watching.store(true, Ordering::SeqCst);
@@ -543,19 +583,19 @@ fn start_watch(app: &AppHandle) -> Result<(), String> {
                     None => break,
                 }
             };
-            let (Some(x), Some(y), Some(target)) = (w.x, w.y, w.color) else { break };
-            let limit = w.tolerance as f64 / 100.0 * 0.5; // 100% tolerance = half the color space
-            match pixel::read(x, y) {
+            if !w.ready() {
+                break;
+            }
+            match w.probe() {
                 Err(e) => {
                     errors += 1;
                     if errors >= 8 {
-                        emit_watch(&app, WatchStatus { on: false, state: "error", text: e, color: None, matched: false });
+                        emit_watch(&app, WatchStatus { on: false, state: "error", text: e, diff: None, matched: false });
                         break;
                     }
                 }
-                Ok(c) => {
+                Ok((d, matched)) => {
                     errors = 0;
-                    let matched = pixel::distance(c, target) <= limit;
                     let running = sh.running.load(Ordering::SeqCst);
                     match phase {
                         "armed" => {
@@ -571,7 +611,7 @@ fn start_watch(app: &AppHandle) -> Result<(), String> {
                                         }
                                     }
                                     Err(e) => {
-                                        emit_watch(&app, WatchStatus { on: false, state: "error", text: e, color: Some(c), matched });
+                                        emit_watch(&app, WatchStatus { on: false, state: "error", text: e, diff: Some(d), matched });
                                         break;
                                     }
                                 }
@@ -599,9 +639,9 @@ fn start_watch(app: &AppHandle) -> Result<(), String> {
                         }
                     }
                     let text = match phase {
-                        "armed" => "Watching for the trigger color".to_string(),
+                        "armed" => if w.mode == "change" { "Watching for a change".to_string() } else { "Watching for the snapshot".to_string() },
                         "running" => format!("Running {name}"),
-                        "reset" => "Waiting for the button to go back to normal".to_string(),
+                        "reset" => "Waiting for the area to go back to normal".to_string(),
                         _ => format!(
                             "Ready again in {} sec",
                             cool_until.saturating_duration_since(Instant::now()).as_secs() + 1
@@ -613,7 +653,7 @@ fn start_watch(app: &AppHandle) -> Result<(), String> {
                         "reset" => "reset",
                         _ => "cooldown",
                     };
-                    emit_watch(&app, WatchStatus { on: true, state, text, color: Some(c), matched });
+                    emit_watch(&app, WatchStatus { on: true, state, text, diff: Some(d), matched });
                 }
             }
             thread::sleep(Duration::from_millis(250));
@@ -622,7 +662,7 @@ fn start_watch(app: &AppHandle) -> Result<(), String> {
         if sh.watch_gen.load(Ordering::SeqCst) == gen {
             let was_on = sh.watching.swap(false, Ordering::SeqCst);
             if was_on {
-                emit_watch(&app, WatchStatus { on: false, state: "off", text: "Watch is off".into(), color: None, matched: false });
+                emit_watch(&app, WatchStatus { on: false, state: "off", text: "Watch is off".into(), diff: None, matched: false });
             }
             refresh_tray(&app);
         }
@@ -634,7 +674,7 @@ fn stop_watch(app: &AppHandle) {
     let sh = app.state::<Arc<Shared>>();
     sh.watch_gen.fetch_add(1, Ordering::SeqCst);
     if sh.watching.swap(false, Ordering::SeqCst) {
-        emit_watch(app, WatchStatus { on: false, state: "off", text: "Watch is off".into(), color: None, matched: false });
+        emit_watch(app, WatchStatus { on: false, state: "off", text: "Watch is off".into(), diff: None, matched: false });
     }
     refresh_tray(app);
 }
@@ -642,12 +682,15 @@ fn stop_watch(app: &AppHandle) {
 fn stop_everything(app: &AppHandle) {
     let sh = app.state::<Arc<Shared>>();
     sh.stop.store(true, Ordering::SeqCst);
+    sh.rec_stop.store(true, Ordering::SeqCst);
     stop_watch(app);
 }
 
 fn toggle_run(app: &AppHandle) {
     let sh = app.state::<Arc<Shared>>();
-    if sh.running.load(Ordering::SeqCst) {
+    if sh.recording.load(Ordering::SeqCst) {
+        sh.rec_stop.store(true, Ordering::SeqCst);
+    } else if sh.running.load(Ordering::SeqCst) {
         sh.stop.store(true, Ordering::SeqCst);
     } else if let Err(e) = start_run(app, "hotkey") {
         let _ = app.emit("progress", Progress { kind: "error", text: e, done: 0, total: 0, finished: true, trigger: "hotkey".into() });
@@ -735,28 +778,136 @@ fn capture_position() -> Result<(i32, i32), String> {
 }
 
 #[derive(Serialize)]
-struct Sample {
-    x: i32,
-    y: i32,
-    color: [u8; 3],
+struct Probe {
+    diff: f64,
+    matched: bool,
 }
 
 #[tauri::command]
-fn capture_color() -> Result<Sample, String> {
+fn watch_probe(sh: Sh) -> Result<Probe, String> {
+    if !pixel::has_permission(false) {
+        return Err("Screen Recording permission needed".into());
+    }
+    let w = sh.settings.lock().unwrap().active_preset().watch;
+    if !w.ready() {
+        return Err("No area selected".into());
+    }
+    let (diff, matched) = w.probe()?;
+    Ok(Probe { diff, matched })
+}
+
+/// Save one spot under the mouse as a 1 x 1 snapshot.
+#[tauri::command]
+fn watch_spot(app: AppHandle, sh: Sh) -> Result<Watch, String> {
     let (x, y) = new_enigo()?.location().map_err(|e| e.to_string())?;
     if !pixel::has_permission(true) {
         return Err("Allow Tapline under Privacy & Security, Screen Recording, then reopen it".into());
     }
-    let color = pixel::read(x, y)?;
-    Ok(Sample { x, y, color })
+    let c = pixel::read(x, y)?;
+    let w = {
+        let mut s = sh.settings.lock().unwrap();
+        let id = s.active.clone();
+        let p = s.presets.iter_mut().find(|p| p.id == id).ok_or("No preset")?;
+        p.watch = Watch { x: Some(x), y: Some(y), w: 1, h: 1, color: Some(c), grid: vec![c], gw: 1, gh: 1, ..p.watch.clone() };
+        p.watch.clone()
+    };
+    sh.save();
+    let _ = app.emit("snipped", ());
+    Ok(w)
+}
+
+// ---------------------------------------------------------------- snip an area
+
+#[tauri::command]
+async fn start_snip(app: AppHandle) -> Result<(), String> {
+    if !pixel::has_permission(true) {
+        return Err("Allow Tapline under Privacy & Security, Screen Recording, then reopen it".into());
+    }
+    if let Some(old) = app.get_webview_window("snip") {
+        let _ = old.close();
+    }
+    let cur = app.cursor_position().map_err(|e| e.to_string())?;
+    let mon = app
+        .monitor_from_point(cur.x, cur.y)
+        .ok()
+        .flatten()
+        .or_else(|| app.primary_monitor().ok().flatten())
+        .ok_or("No screen found")?;
+    let scale = mon.scale_factor();
+    let (pos, size) = (mon.position(), mon.size());
+    if let Some(main) = app.get_webview_window("main") {
+        let _ = main.hide();
+    }
+    thread::sleep(Duration::from_millis(150));
+    WebviewWindowBuilder::new(&app, "snip", WebviewUrl::App("snip.html".into()))
+        .title("Select area")
+        .decorations(false)
+        .transparent(true)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .resizable(false)
+        .shadow(false)
+        .position(pos.x as f64 / scale, pos.y as f64 / scale)
+        .inner_size(size.width as f64 / scale, size.height as f64 / scale)
+        .focused(true)
+        .build()
+        .map_err(|e| {
+            show_main(&app);
+            format!("Could not open the area picker: {e}")
+        })?;
+    Ok(())
 }
 
 #[tauri::command]
-fn sample_color(x: i32, y: i32) -> Result<[u8; 3], String> {
-    if !pixel::has_permission(false) {
-        return Err("Screen Recording permission needed".into());
+fn snip_cancel(app: AppHandle) {
+    if let Some(w) = app.get_webview_window("snip") {
+        let _ = w.close();
     }
-    pixel::read(x, y)
+    show_main(&app);
+}
+
+/// Called by the area picker with the box in its own (CSS pixel) coordinates.
+#[tauri::command]
+fn snip_done(app: AppHandle, x: f64, y: f64, w: f64, h: f64) -> Result<(), String> {
+    let win = app.get_webview_window("snip").ok_or("Area picker closed")?;
+    let pos = win.outer_position().map_err(|e| e.to_string())?;
+    let scale = win.scale_factor().map_err(|e| e.to_string())?;
+    let _ = win.close();
+    // Windows works in physical pixels, macOS in points
+    let (sx, sy, sw, sh_) = if cfg!(target_os = "macos") {
+        (pos.x as f64 / scale + x, pos.y as f64 / scale + y, w, h)
+    } else {
+        (pos.x as f64 + x * scale, pos.y as f64 + y * scale, w * scale, h * scale)
+    };
+    let (ax, ay) = (sx.round() as i32, sy.round() as i32);
+    let (aw, ah) = ((sw.round() as i32).clamp(1, 1600), (sh_.round() as i32).clamp(1, 1200));
+    let app2 = app.clone();
+    thread::spawn(move || {
+        thread::sleep(Duration::from_millis(250)); // let the picker disappear first
+        let sh = app2.state::<Arc<Shared>>();
+        let result = pixel::read_area(ax, ay, aw, ah).map(|(px, pw, ph)| pixel::fingerprint(&px, pw, ph, 40));
+        match result {
+            Ok((grid, gw, gh)) if !grid.is_empty() => {
+                {
+                    let mut s = sh.settings.lock().unwrap();
+                    let id = s.active.clone();
+                    if let Some(p) = s.presets.iter_mut().find(|p| p.id == id) {
+                        p.watch = Watch { x: Some(ax), y: Some(ay), w: aw, h: ah, color: grid.first().copied(), grid, gw, gh, ..p.watch.clone() };
+                    }
+                }
+                sh.save();
+                let _ = app2.emit("snipped", ());
+            }
+            Ok(_) => {
+                let _ = app2.emit("snip_error", "That area was empty. Try again.");
+            }
+            Err(e) => {
+                let _ = app2.emit("snip_error", e);
+            }
+        }
+        show_main(&app2);
+    });
+    Ok(())
 }
 
 #[tauri::command]
@@ -802,6 +953,182 @@ fn open_url(app: AppHandle, url: String) -> Result<(), String> {
     app.opener().open_url(url, None::<&str>).map_err(|e| e.to_string())
 }
 
+
+// ---------------------------------------------------------------- record mode
+
+#[derive(Clone, Serialize)]
+struct RecStatus {
+    on: bool,
+    count: usize,
+    text: String,
+}
+
+#[tauri::command]
+fn start_record(app: AppHandle) -> Result<(), String> {
+    let sh = app.state::<Arc<Shared>>().inner().clone();
+    if sh.running.load(Ordering::SeqCst) {
+        return Err("Stop the run before recording".into());
+    }
+    if !input::has_permission(true) {
+        return Err("Allow Tapline under Privacy & Security, Input Monitoring, then reopen it".into());
+    }
+    drop(new_enigo()?); // surfaces a missing Accessibility permission here
+    if sh.recording.swap(true, Ordering::SeqCst) {
+        return Ok(());
+    }
+    stop_watch(&app);
+    sh.rec_stop.store(false, Ordering::SeqCst);
+    let _ = app.global_shortcut().register(esc());
+    let hotkey = sh.settings.lock().unwrap().hotkey.clone();
+    let stop_key: String = hotkey.rsplit('+').next().unwrap_or("F8").to_string();
+    let app = app.clone();
+
+    thread::spawn(move || {
+        let emit = |on: bool, count: usize, text: String| {
+            let _ = app.emit("rec", RecStatus { on, count, text });
+        };
+        let enigo = match new_enigo() {
+            Ok(e) => e,
+            Err(e) => {
+                sh.recording.store(false, Ordering::SeqCst);
+                let _ = app.global_shortcut().unregister(esc());
+                emit(false, 0, e);
+                return;
+            }
+        };
+        // 3 second head start
+        for n in (1..=3).rev() {
+            if sh.rec_stop.load(Ordering::SeqCst) {
+                break;
+            }
+            emit(true, 0, format!("Recording starts in {n}..."));
+            thread::sleep(Duration::from_secs(1));
+        }
+        let mut steps: Vec<Step> = Vec::new();
+        let mut last_at = Instant::now();
+        let mut last_click: Option<(Instant, i32, i32)> = None;
+        let mut last_char = Instant::now() - Duration::from_secs(10);
+        let mut prev = input::read();
+        let started = Instant::now();
+        if !sh.rec_stop.load(Ordering::SeqCst) {
+            emit(true, 0, "Recording. Do your clicks and keys now.".into());
+        }
+
+        // area of Tapline's own window, so clicks on it are not recorded
+        let own_rect = || -> Option<(i32, i32, i32, i32)> {
+            let w = app.get_webview_window("main")?;
+            if !w.is_visible().unwrap_or(false) {
+                return None;
+            }
+            let p = w.outer_position().ok()?;
+            let z = w.outer_size().ok()?;
+            let k = if cfg!(target_os = "macos") { w.scale_factor().unwrap_or(1.0) } else { 1.0 };
+            Some(((p.x as f64 / k) as i32, (p.y as f64 / k) as i32, (z.width as f64 / k) as i32, (z.height as f64 / k) as i32))
+        };
+
+        let push = |steps: &mut Vec<Step>, last_at: &mut Instant, st: Step| {
+            let gap = last_at.elapsed().as_secs_f64();
+            if let Some(prev) = steps.last_mut() {
+                prev.delay = ((gap * 10.0).round() / 10.0).clamp(0.1, 60.0);
+            }
+            steps.push(st);
+            *last_at = Instant::now();
+        };
+
+        while !sh.rec_stop.load(Ordering::SeqCst) && steps.len() < 300 && started.elapsed() < Duration::from_secs(600) {
+            thread::sleep(Duration::from_millis(10));
+            let now = input::read();
+            // mouse button pressed
+            for (is_down, was_down, button) in [(now.left, prev.left, "left"), (now.right, prev.right, "right")] {
+                if is_down && !was_down {
+                    if let Ok((x, y)) = enigo.location() {
+                        let mine = own_rect().map(|(rx, ry, rw, rh)| x >= rx && x < rx + rw && y >= ry && y < ry + rh).unwrap_or(false);
+                        if mine {
+                            continue;
+                        }
+                        // second left click close by = double-click
+                        let dbl = button == "left"
+                            && last_click.map(|(t, lx, ly)| t.elapsed() < Duration::from_millis(400) && (lx - x).abs() <= 4 && (ly - y).abs() <= 4).unwrap_or(false)
+                            && steps.last().map(|s| s.kind == "click" && s.button == "left").unwrap_or(false);
+                        if dbl {
+                            if let Some(s) = steps.last_mut() {
+                                s.button = "double".into();
+                            }
+                            last_click = None;
+                        } else {
+                            push(&mut steps, &mut last_at, Step { kind: "click".into(), x: Some(x), y: Some(y), button: button.into(), ..Step::default() });
+                            if button == "left" {
+                                last_click = Some((Instant::now(), x, y));
+                            }
+                        }
+                        emit(true, steps.len(), format!("Recording · {} steps", steps.len()));
+                    }
+                }
+            }
+            // keys pressed
+            for k in now.keys.iter().filter(|k| !prev.keys.contains(k)) {
+                if *k == "Escape" || *k == stop_key.as_str() {
+                    continue; // these stop the recording
+                }
+                let mods: Vec<String> = now.mods.iter().map(|m| m.to_string()).collect();
+                let only_shift = mods.iter().all(|m| m == "Shift");
+                let typable = k.len() == 1 || *k == "Space";
+                if typable && only_shift && !(mods.len() == 1 && k.chars().all(|c| c.is_ascii_digit())) {
+                    let c = if *k == "Space" {
+                        ' '
+                    } else {
+                        let ch = k.chars().next().unwrap_or(' ');
+                        if mods.is_empty() { ch.to_ascii_lowercase() } else { ch.to_ascii_uppercase() }
+                    };
+                    let join = last_char.elapsed() < Duration::from_millis(1500) && steps.last().map(|s| s.kind == "text").unwrap_or(false);
+                    if join {
+                        if let Some(s) = steps.last_mut() {
+                            s.text.push(c);
+                        }
+                        last_at = Instant::now();
+                    } else {
+                        push(&mut steps, &mut last_at, Step { kind: "text".into(), text: c.to_string(), ..Step::default() });
+                    }
+                    last_char = Instant::now();
+                } else {
+                    push(&mut steps, &mut last_at, Step { kind: "key".into(), key: k.to_string(), mods, ..Step::default() });
+                }
+                emit(true, steps.len(), format!("Recording · {} steps", steps.len()));
+            }
+            prev = now;
+        }
+
+        let _ = app.global_shortcut().unregister(esc());
+        sh.recording.store(false, Ordering::SeqCst);
+        if steps.is_empty() {
+            emit(false, 0, "Nothing was recorded".into());
+            return;
+        }
+        if let Some(s) = steps.last_mut() {
+            s.delay = 0.3;
+        }
+        let count = steps.len();
+        let name = {
+            let mut s = sh.settings.lock().unwrap();
+            let n = s.presets.iter().filter(|p| p.name.starts_with("Recording")).count() + 1;
+            let p = Preset { id: format!("r{}", now_ms()), name: format!("Recording {n}"), steps, ..Preset::default() };
+            let name = p.name.clone();
+            s.active = p.id.clone();
+            s.presets.push(p);
+            name
+        };
+        sh.save();
+        refresh_tray(&app);
+        emit(false, count, format!("Saved {count} steps as \"{name}\""));
+    });
+    Ok(())
+}
+
+#[tauri::command]
+fn stop_record(sh: Sh) {
+    sh.rec_stop.store(true, Ordering::SeqCst);
+}
+
 // ---------------------------------------------------------------- app
 
 fn load_settings(dir: &PathBuf) -> Settings {
@@ -815,8 +1142,6 @@ fn load_settings(dir: &PathBuf) -> Settings {
         let p = &mut s.presets[0];
         p.steps[0].x = old.x;
         p.steps[0].y = old.y;
-        p.watch.x = old.x;
-        p.watch.y = old.y;
         p.rounds = old.count.unwrap_or(2);
         p.round_wait = old.wait.unwrap_or(2.0);
     }
@@ -875,6 +1200,8 @@ pub fn run_app() {
                 dir,
                 hotkey: Mutex::new(None),
                 quiet_until: Mutex::new(Instant::now()),
+                recording: AtomicBool::new(false),
+                rec_stop: AtomicBool::new(false),
                 tray: Mutex::new(None),
             });
             app.manage(shared.clone());
@@ -907,7 +1234,7 @@ pub fn run_app() {
                             stop_watch(app);
                         } else if let Err(e) = start_watch(app) {
                             show_main(app);
-                            emit_watch(app, WatchStatus { on: false, state: "error", text: e, color: None, matched: false });
+                            emit_watch(app, WatchStatus { on: false, state: "error", text: e, diff: None, matched: false });
                         }
                     }
                     "quit" => app.exit(0),
@@ -940,8 +1267,13 @@ pub fn run_app() {
             get_all,
             save_settings,
             capture_position,
-            capture_color,
-            sample_color,
+            watch_probe,
+            watch_spot,
+            start_snip,
+            snip_cancel,
+            snip_done,
+            start_record,
+            stop_record,
             run,
             stop,
             set_watch,

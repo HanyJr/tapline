@@ -9,20 +9,21 @@
 </p>
 
 <p align="center">
-  <b>Version 1.1</b> &nbsp;·&nbsp; Free &nbsp;·&nbsp; Windows 10 and 11 &nbsp;·&nbsp; macOS 11 or later &nbsp;·&nbsp; <a href="https://hanyjr.github.io/tapline/">Website</a> &nbsp;·&nbsp; <a href="https://github.com/HanyJr/tapline/releases">All releases</a>
+  <b>Version 1.2</b> &nbsp;·&nbsp; Free &nbsp;·&nbsp; Windows 10 and 11 &nbsp;·&nbsp; macOS 11 or later &nbsp;·&nbsp; <a href="https://hanyjr.github.io/tapline/">Website</a> &nbsp;·&nbsp; <a href="https://github.com/HanyJr/tapline/releases">All releases</a>
 </p>
 
 <br>
 
 ## What it does
 
-Tapline runs a short sequence of clicks and key presses, repeats it as many times as you set, and can **start on its own when a button on your screen changes color**. One key starts it, the same key stops it, and <kbd>Esc</kbd> stops everything.
+Tapline runs a short sequence of clicks and key presses, repeats it as many times as you set, and can **start on its own when part of your screen changes**. Record what you do once, or build the steps yourself. One key starts it, the same key stops it, and <kbd>Esc</kbd> stops everything.
 
 ## Features
 
 | | |
 |---|---|
-| **Watch mode** | Pick a spot and its "new" color. When that spot turns that color, Tapline runs your sequence by itself, then waits for it to go back to normal and a cooldown before it can fire again. |
+| **Watch mode** | Snip an area of the screen like a partial screenshot. Tapline starts the run when the area **looks like your snapshot** or **changes from it** (a new badge, number or color), then waits for it to go back to normal and a cooldown before it can fire again. |
+| **Record** | Press Record, do your clicks, keys and typing once, press Stop. Tapline turns it into steps with the same timing, saved as a new preset. |
 | **Steps** | Build a sequence: click (left, right or double), press a key with Ctrl / Shift / Alt / Cmd, type text, or wait. Each step has its own pause. |
 | **Mouse travel time** | Set how many milliseconds the mouse takes to glide to each spot, or 0 to jump instantly. |
 | **Rounds and timing** | Repeat 1 to 999 times, with 0 seconds to 10 minutes between rounds. |
@@ -48,7 +49,8 @@ Tapline runs a short sequence of clicks and key presses, repeats it as many time
 2. Open it and drag **Tapline** into **Applications**.
 3. First launch: right-click Tapline, choose **Open**, then **Open** again. On macOS 15 or later, go to *System Settings > Privacy & Security* and press **Open Anyway**.
 4. Allow Tapline under *Privacy & Security > Accessibility* so it can click and type.
-5. For Watch mode, also allow it under *Privacy & Security > Screen Recording*, then reopen Tapline. This only lets it read the color of the spot you chose.
+5. For Watch mode, also allow it under *Privacy & Security > Screen Recording*, then reopen Tapline. It only reads the area you chose.
+6. For Record, allow it under *Privacy & Security > Input Monitoring*. It only listens while you are recording.
 
 ## How to use
 
@@ -57,11 +59,16 @@ Tapline runs a short sequence of clicks and key presses, repeats it as many time
 2. Add any other steps you need, such as Enter or a wait.
 3. On **Run**, set **Rounds** and **Wait between**, then press **Run** or your key (F8 by default).
 
+**Record it instead**
+1. Open **Steps** and press **Record**. Recording starts after a 3 second countdown.
+2. Do the clicks, keys and typing once.
+3. Press **Stop**, your start/stop key or <kbd>Esc</kbd>. The steps appear as a new preset, ready to edit.
+
 **Let Watch start it**
-1. Make the button show its "new" color.
-2. Open **Watch**, press **Set from screen** and hold the mouse on the button for 3 seconds.
-3. Press **Start watching**. Keep that spot visible on screen.
-4. If it fires too easily or not at all, change **Sensitivity**. Raise **Cooldown** to make it wait longer between runs.
+1. Open **Watch** and press **Select area**. The screen dims: drag a box around the button or the part that changes, or click once for a single spot.
+2. Choose **Looks like the snapshot** (snip it while it shows "new") or **Changes from it** (snip it while it looks normal).
+3. Press **Start watching** and keep that area visible on screen.
+4. **Right now** shows how different the area is. If it fires too easily or not at all, change **Allowed difference**. Raise **Cooldown** to make it wait longer between runs.
 
 ## For developers
 

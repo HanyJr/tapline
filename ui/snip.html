@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Select area</title>
+<style>
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; cursor: crosshair;
+    font: 600 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; user-select: none; -webkit-user-select: none; }
+  #tint { position: fixed; inset: 0; background: rgba(10, 20, 34, .38); }
+  #box { position: fixed; display: none; border: 2px solid #d4a84b; border-radius: 3px;
+    box-shadow: 0 0 0 9999px rgba(10, 20, 34, .38); background: rgba(212, 168, 75, .06); }
+  #size { position: absolute; left: -2px; top: -30px; background: #0e1b2c; color: #e7ecf2; padding: 4px 8px;
+    border-radius: 6px; font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  #tip { position: fixed; top: 28px; left: 50%; transform: translateX(-50%); background: #0e1b2c; color: #e7ecf2;
+    border: 1px solid rgba(212, 168, 75, .5); padding: 10px 16px; border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,.4);
+    white-space: nowrap; pointer-events: none; }
+  #tip b { color: #e0b85c; }
+  kbd { font: 600 12px inherit; border: 1px solid rgba(169,182,198,.35); border-radius: 5px; padding: 1px 6px; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div id="tint"></div>
+<div id="box"><span id="size"></span></div>
+<div id="tip"><b>Drag</b> around the area to watch, or <b>click</b> one spot · <kbd>Esc</kbd> cancel</div>
+<script>
+{
+  const T = window.__TAURI__;
+  const call = (cmd, args) => T ? T.core.invoke(cmd, args) : Promise.resolve();
+  const box = document.getElementById("box"), size = document.getElementById("size"), tint = document.getElementById("tint");
+  let start = null, done = false;
+  const rect = (a, b) => ({ x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(a.x - b.x), h: Math.abs(a.y - b.y) });
+  const draw = r => {
+    Object.assign(box.style, { display: "block", left: r.x + "px", top: r.y + "px", width: r.w + "px", height: r.h + "px" });
+    tint.style.display = "none";
+    size.textContent = `${Math.round(r.w)} × ${Math.round(r.h)}`;
+    size.style.top = r.y < 34 ? (r.h + 6) + "px" : "-30px";
+  };
+  addEventListener("mousedown", e => { if (e.button !== 0 || done) return; start = { x: e.clientX, y: e.clientY }; });
+  addEventListener("mousemove", e => { if (start) draw(rect(start, { x: e.clientX, y: e.clientY })); });
+  addEventListener("mouseup", e => {
+    if (!start || done) return;
+    done = true;
+    let r = rect(start, { x: e.clientX, y: e.clientY });
+    if (r.w < 4 || r.h < 4) r = { x: start.x, y: start.y, w: 1, h: 1 }; // a click = one spot
+    start = null;
+    document.body.style.opacity = "0";
+    call("snip_done", r).catch(() => call("snip_cancel"));
+  });
+  addEventListener("keydown", e => { if (e.key === "Escape" && !done) { done = true; call("snip_cancel"); } });
+  addEventListener("contextmenu", e => e.preventDefault());
+  window.focus();
+}
+</script>
+</body>
+</html>

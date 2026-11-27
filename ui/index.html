@@ -95,6 +95,11 @@ input{font:inherit;color:var(--text)}
 .err-text{color:var(--danger)}
 .ok-text{color:var(--success)}
 .swatch{width:34px;height:34px;border-radius:10px;border:1px solid var(--border);flex:none;background:repeating-conic-gradient(var(--raised) 0 25%,var(--control) 0 50%) 0 0/10px 10px}
+.snap{position:relative;height:96px;border-radius:12px;border:1px dashed var(--border);background:var(--raised);display:grid;place-items:center;overflow:hidden}
+.snap canvas{max-width:100%;max-height:100%;image-rendering:pixelated;border-radius:4px}
+.snap .hint{position:absolute}
+.recdot{width:10px;height:10px;border-radius:50%;background:var(--danger);flex:none}
+.recording .recdot{animation:pulse 1s infinite}
 .step{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:12px;display:grid;gap:10px}
 .step-h{display:flex;align-items:center;gap:8px}
 .num{width:24px;height:24px;border-radius:50%;border:1px solid var(--accent);color:var(--accent);display:grid;place-items:center;font-size:12px;font-weight:650;flex:none}
@@ -156,7 +161,7 @@ kbd{font:600 11px var(--font);padding:1px 6px;border-radius:5px;border:1px solid
       </div>
       <button class="btn primary" id="runBtn" type="button"></button>
       <div class="card">
-        <button class="switch" role="switch" id="watchQuick" aria-checked="false" type="button"><span class="t"><b>Watch mode</b><span class="hint" id="watchQuickText">Starts the run when the button changes color</span></span><span class="track"></span></button>
+        <button class="switch" role="switch" id="watchQuick" aria-checked="false" type="button"><span class="t"><b>Watch mode</b><span class="hint" id="watchQuickText">Starts the run when the screen shows your snapshot</span></span><span class="track"></span></button>
       </div>
       <div class="card">
         <div class="row"><span class="label" id="todayText">Today: no runs yet</span><button class="btn sm ghost" type="button" id="clearLog">Clear</button></div>
@@ -167,6 +172,10 @@ kbd{font:600 11px var(--font);padding:1px 6px;border-radius:5px;border:1px solid
 
     <!-- STEPS -->
     <section id="steps" role="tabpanel" aria-labelledby="tab-steps" hidden>
+      <div class="card" id="recCard">
+        <div class="row"><div style="display:grid;gap:2px"><b>Record</b><span class="hint" id="recText">Do it once and Tapline writes the steps for you</span></div><button class="btn" type="button" id="recBtn"><span class="recdot"></span><span>Record</span></button></div>
+        <p class="hint" id="recMac" hidden>On a Mac, Record needs Input Monitoring permission: System Settings, Privacy &amp; Security, Input Monitoring.</p>
+      </div>
       <p class="hint">Each round runs these steps from top to bottom.</p>
       <div id="stepList" style="display:grid;gap:10px"></div>
       <button class="btn" type="button" id="addStep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add step</button>
@@ -174,21 +183,29 @@ kbd{font:600 11px var(--font);padding:1px 6px;border-radius:5px;border:1px solid
 
     <!-- WATCH -->
     <section id="watch" role="tabpanel" aria-labelledby="tab-watch" hidden>
-      <p class="hint">Tapline watches one spot on the screen and starts the run when it turns your trigger color. Keep that spot visible.</p>
+      <p class="hint">Tapline watches an area of the screen and starts the run when it looks like your snapshot, or when it changes. Keep that area visible.</p>
       <div class="card">
-        <span class="label">Trigger</span>
-        <div class="row">
-          <div style="display:flex;align-items:center;gap:10px"><span class="swatch" id="trigSw"></span><div><b id="trigText">Not set yet</b><div class="hint" id="trigPos"></div></div></div>
-          <button class="btn sm" type="button" id="setTrig">Set from screen</button>
+        <span class="label">Snapshot</span>
+        <div class="snap"><canvas id="snapCv" width="320" height="96" role="img" aria-label="Snapshot of the watched area"></canvas><span class="hint" id="snapEmpty">No area selected yet</span></div>
+        <div class="row"><span class="hint" id="snapInfo"></span></div>
+        <div class="row" style="justify-content:flex-start;gap:8px">
+          <button class="btn" type="button" id="snipBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2v14a2 2 0 0 0 2 2h14M18 22V8a2 2 0 0 0-2-2H2"/></svg><span id="snipLabel">Select area</span></button>
+          <button class="btn ghost sm" type="button" id="spotBtn">Pick one spot</button>
         </div>
-        <p class="hint" id="trigHint">Make the button show its "new" color, press Set from screen, then hold the mouse on it for 3 seconds.</p>
+        <p class="hint" id="trigHint"></p>
       </div>
       <div class="card">
-        <span class="label">Right now</span>
-        <div class="row"><div style="display:flex;align-items:center;gap:10px"><span class="swatch" id="liveSw"></span><b id="liveText" class="muted">Not watching a spot yet</b></div></div>
+        <span class="label">Start the run when the area</span>
+        <div class="seg" role="group" aria-label="When to start"><button type="button" data-mode="match" aria-pressed="true">Looks like the snapshot</button><button type="button" data-mode="change" aria-pressed="false">Changes from it</button></div>
+        <p class="hint" id="modeHint"></p>
+      </div>
+      <div class="card">
+        <div class="row"><span class="label">Right now</span><span class="count" id="liveDiff"></span></div>
+        <b id="liveText" class="muted">Select an area first</b>
+        <div class="meter"><i id="liveBar"></i></div>
       </div>
       <div class="two">
-        <div class="card"><label class="label" for="tolerance">Sensitivity</label><div class="stepper" data-field="tolerance"></div><div class="unit">% color difference</div></div>
+        <div class="card"><label class="label" for="tolerance">Allowed difference</label><div class="stepper" data-field="tolerance"></div><div class="unit">% of the area</div></div>
         <div class="card"><label class="label" for="cooldown">Cooldown</label><div class="stepper" data-field="cooldown"></div><div class="unit">sec before it can fire again</div></div>
       </div>
       <div class="card status" aria-live="polite">
@@ -259,14 +276,18 @@ const T = window.__TAURI__;
 const handlers = {};
 const fire = (ev, payload) => (handlers[ev] || []).forEach(f => f({ payload }));
 const mock = (() => {
-  let st = { presets: [{ id: "p1", name: "New leads", steps: [{ kind: "click", x: 812, y: 244, button: "left", key: "Enter", mods: [], text: "", secs: 1, delay: .3, travel_ms: 0 }, { kind: "key", x: null, y: null, button: "left", key: "Enter", mods: [], text: "", secs: 1, delay: .3, travel_ms: 0 }], rounds: 2, round_wait: 2, watch: { x: null, y: null, color: null, tolerance: 12, cooldown: 10 } }], active: "p1", hotkey: "F8", sound: true, notify: true, tray_on_close: true, corner_stop: true };
+  let st = { presets: [{ id: "p1", name: "New leads", steps: [{ kind: "click", x: 812, y: 244, button: "left", key: "Enter", mods: [], text: "", secs: 1, delay: .3, travel_ms: 0 }, { kind: "key", x: null, y: null, button: "left", key: "Enter", mods: [], text: "", secs: 1, delay: .3, travel_ms: 0 }], rounds: 2, round_wait: 2, watch: { x: null, y: null, w: 1, h: 1, color: null, grid: [], gw: 0, gh: 0, mode: "match", tolerance: 12, cooldown: 10 } }], active: "p1", hotkey: "F8", sound: true, notify: true, tray_on_close: true, corner_stop: true };
   let log = [], running = false, stopF = false, watching = false;
   return {
     get_all: async () => ({ settings: structuredClone(st), platform: "preview", version: "1.1.0", autostart: false, running, watching, log, hotkey_ok: true }),
     save_settings: async ({ settings }) => { st = structuredClone(settings); return structuredClone(st); },
     capture_position: async () => [640 + Math.round(Math.random() * 300), 200 + Math.round(Math.random() * 200)],
-    capture_color: async () => ({ x: 812, y: 244, color: [212, 70, 60] }),
-    sample_color: async () => [212, 70, 60],
+    watch_probe: async () => ({ diff: .04, matched: true }),
+    watch_spot: async () => { const p = st.presets.find(p => p.id === st.active); Object.assign(p.watch, { x: 812, y: 244, w: 1, h: 1, grid: [[200, 60, 50]], gw: 1, gh: 1 }); fire("snipped"); return p.watch; },
+    start_snip: async () => { setTimeout(() => { const p = st.presets.find(p => p.id === st.active); const gw = 40, gh = 9; const grid = []; for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) grid.push(x > 30 && y > 1 && y < 7 ? [200, 60, 50] : x < 26 && y > 2 && y < 6 ? [60, 80, 110] : [238, 236, 230]); Object.assign(p.watch, { x: 640, y: 210, w: 180, h: 40, grid, gw, gh }); fire("snipped"); }, 300); },
+    snip_cancel: async () => {}, snip_done: async () => {},
+    start_record: async () => { fire("rec", { on: true, count: 0, text: "Recording starts in 3..." }); setTimeout(() => fire("rec", { on: true, count: 2, text: "Recording · 2 steps" }), 400); },
+    stop_record: async () => { st.presets.push({ id: "r1", name: "Recording 1", steps: [{ kind: "click", x: 700, y: 300, button: "left", key: "Enter", mods: [], text: "", secs: 1, delay: .8, travel_ms: 0 }, { kind: "text", x: null, y: null, button: "left", key: "Enter", mods: [], text: "hello", secs: 1, delay: .3, travel_ms: 0 }], rounds: 2, round_wait: 2, watch: { x: null, y: null, w: 1, h: 1, grid: [], gw: 0, gh: 0, mode: "match", tolerance: 12, cooldown: 10 } }); st.active = "r1"; fire("rec", { on: false, count: 2, text: 'Saved 2 steps as "Recording 1"' }); },
     run: async () => {
       const p = st.presets.find(p => p.id === st.active); if (running) return; running = true; stopF = false;
       let d = 0;
@@ -275,7 +296,7 @@ const mock = (() => {
       fire("progress", { kind: stopF ? "error" : "done", text: stopF ? `Stopped after ${d} of ${p.rounds}` : "Done", done: d, total: p.rounds, finished: true }); fire("log");
     },
     stop: async () => { stopF = true; },
-    set_watch: async ({ on }) => { watching = on; fire("watch", on ? { on: true, state: "armed", text: "Watching for the trigger color", color: [40, 60, 90], matched: false } : { on: false, state: "off", text: "Watch is off", color: null, matched: false }); },
+    set_watch: async ({ on }) => { if (on && !st.presets.find(p => p.id === st.active).watch.grid.length) throw "Select the area to watch first"; watching = on; fire("watch", on ? { on: true, state: "armed", text: "Watching for the snapshot", diff: .62, matched: false } : { on: false, state: "off", text: "Watch is off", diff: null, matched: false }); },
     set_autostart: async ({ on }) => on, clear_log: async () => { log = []; }, open_url: async () => {},
   };
 })();
@@ -439,46 +460,96 @@ async function pickSpot(el, s) {
 }
 
 // ---------- watch ----------
-const rgb = c => c ? `rgb(${c[0]},${c[1]},${c[2]})` : "";
-const hex = c => c ? "#" + c.map(v => v.toString(16).padStart(2, "0")).join("").toUpperCase() : "";
+function drawSnap() {
+  const w = P().watch, cv = $("snapCv"), ctx = cv.getContext("2d");
+  const has = w.grid && w.grid.length && w.gw && w.gh;
+  $("snapEmpty").hidden = !!has; cv.hidden = !has;
+  if (!has) { $("snapInfo").textContent = ""; $("snipLabel").textContent = "Select area"; return; }
+  const box = $("snapCv").parentElement.getBoundingClientRect();
+  const k = Math.max(1, Math.min((box.width - 16) / w.gw, (box.height - 16) / w.gh));
+  cv.width = Math.round(w.gw * k); cv.height = Math.round(w.gh * k);
+  ctx.imageSmoothingEnabled = false;
+  w.grid.forEach((c, i) => { ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`; ctx.fillRect(Math.floor((i % w.gw) * k), Math.floor(Math.floor(i / w.gw) * k), Math.ceil(k), Math.ceil(k)); });
+  $("snapInfo").textContent = w.w <= 1 && w.h <= 1 ? `One spot at ${w.x}, ${w.y}` : `Area ${w.w} × ${w.h} at ${w.x}, ${w.y}`;
+  $("snipLabel").textContent = "Select again";
+}
 function renderWatchSetup() {
   const w = P().watch;
-  $("trigSw").style.background = w.color ? rgb(w.color) : "";
-  $("trigText").textContent = w.color ? hex(w.color) : "Not set yet";
-  $("trigPos").textContent = w.x != null ? `at ${w.x}, ${w.y}` : "";
-  $("setTrig").textContent = w.color ? "Set again" : "Set from screen";
+  drawSnap();
+  document.querySelectorAll("[data-mode]").forEach(b => b.setAttribute("aria-pressed", (w.mode || "match") === b.dataset.mode));
+  $("modeHint").textContent = (w.mode === "change")
+    ? "Take the snapshot while the area looks normal. Tapline starts when something in it changes, like a new number or badge."
+    : "Take the snapshot while the button shows its new state. Tapline starts when the area looks like that again.";
   $("watchBtn").textContent = watching ? "Stop watching" : "Start watching";
   $("watchBtn").classList.toggle("stop", watching);
   $("macWatchNote").hidden = plat !== "mac";
 }
-$("setTrig").addEventListener("click", async () => {
-  if (picking) return; picking = true; $("setTrig").disabled = true;
-  try { await countdown(t => { $("trigHint").textContent = t; $("trigHint").className = "hint"; }, "the button"); const r = await call("capture_color"); Object.assign(P().watch, { x: r.x, y: r.y, color: r.color }); await save(true); $("trigHint").textContent = "Saved. Turn Watch on whenever you're ready."; $("trigHint").className = "hint ok-text"; renderWatchSetup(); }
-  catch (e) { $("trigHint").textContent = String(e); $("trigHint").className = "hint err-text"; }
-  $("setTrig").disabled = false; picking = false;
+document.querySelectorAll("[data-mode]").forEach(b => b.addEventListener("click", () => {
+  const w = P().watch, m = b.dataset.mode; if ((w.mode || "match") === m) return;
+  // sensible defaults: a small badge is a few % of an area
+  if (m === "change" && w.tolerance === 12) w.tolerance = 2;
+  if (m === "match" && w.tolerance === 2) w.tolerance = 12;
+  w.mode = m; save(); render();
+}));
+function trigMsg(t, kind) { $("trigHint").textContent = t; $("trigHint").className = "hint" + (kind === "err" ? " err-text" : kind === "ok" ? " ok-text" : ""); }
+$("snipBtn").addEventListener("click", async () => {
+  if (picking || watching) { if (watching) trigMsg("Stop watching before choosing a new area.", "err"); return; }
+  trigMsg("");
+  try { await save(true); await call("start_snip"); } catch (e) { trigMsg(String(e), "err"); }
 });
+$("spotBtn").addEventListener("click", async () => {
+  if (picking || watching) return; picking = true; $("spotBtn").disabled = true;
+  try { await countdown(t => trigMsg(t), "the spot"); await call("watch_spot"); } catch (e) { trigMsg(String(e), "err"); }
+  $("spotBtn").disabled = false; picking = false;
+});
+on("snipped", async () => { S = (await call("get_all")).settings; renderWatchSetup(); trigMsg("Saved. Turn Watch on whenever you're ready.", "ok"); });
+on("snip_error", ({ payload }) => trigMsg(String(payload), "err"));
 async function toggleWatch() {
   try { await save(true); await call("set_watch", { on: !watching }); }
   catch (e) { setWatchStatus({ on: false, state: "error", text: String(e) }); }
 }
 $("watchBtn").addEventListener("click", toggleWatch);
 $("watchQuick").addEventListener("click", toggleWatch);
+function showLive(diff, matched) {
+  if (diff == null) return;
+  const pct = Math.round(diff * 100);
+  $("liveDiff").textContent = `${pct}% different`;
+  $("liveBar").style.width = Math.min(100, pct) + "%";
+  $("liveText").textContent = matched ? "Would start the run" : "Would not start yet";
+  $("liveText").className = matched ? "ok-text" : "muted";
+}
 function setWatchStatus(w) {
   watching = !!w.on;
   $("wDot").className = "dot " + (w.state === "armed" ? "ok" : w.state === "running" ? "busy" : w.state === "error" ? "err" : w.on ? "busy" : "");
   $("wText").textContent = w.text; $("wText").className = w.state === "error" ? "err-text" : "";
-  $("watchQuickText").textContent = w.on ? w.text : w.state === "error" ? w.text : "Starts the run when the button changes color";
+  $("watchQuickText").textContent = w.on ? w.text : w.state === "error" ? w.text : "Starts the run when the screen shows your snapshot";
   $("watchQuickText").className = w.state === "error" ? "hint err-text" : "hint";
-  if (w.color) { $("liveSw").style.background = rgb(w.color); $("liveText").textContent = w.matched ? "Matches the trigger" : "Doesn't match"; $("liveText").className = w.matched ? "ok-text" : "muted"; }
+  showLive(w.diff, w.matched);
   renderWatchSetup(); renderRun();
 }
 // live preview while the Watch tab is open and Watch is off
 setInterval(async () => {
   if ($("watch").hidden || watching || picking) return;
-  const w = P().watch; if (w.x == null) return;
-  try { const c = await call("sample_color", { x: w.x, y: w.y }); const m = w.color && Math.hypot(c[0] - w.color[0], c[1] - w.color[1], c[2] - w.color[2]) / 441.673 <= w.tolerance / 100 * .5; $("liveSw").style.background = rgb(c); $("liveText").textContent = m ? "Matches the trigger" : "Doesn't match"; $("liveText").className = m ? "ok-text" : "muted"; }
+  const w = P().watch; if (!w.grid || !w.grid.length) { $("liveText").textContent = "Select an area first"; $("liveText").className = "muted"; $("liveDiff").textContent = ""; $("liveBar").style.width = "0"; return; }
+  try { const r = await call("watch_probe"); showLive(r.diff, r.matched); }
   catch (e) { $("liveText").textContent = String(e); $("liveText").className = "err-text"; }
-}, 600);
+}, 700);
+addEventListener("resize", () => { if (S) drawSnap(); });
+
+// ---------- record ----------
+let recording = false;
+$("recBtn").addEventListener("click", async () => {
+  try { if (recording) await call("stop_record"); else { await save(true); await call("start_record"); } }
+  catch (e) { $("recText").textContent = String(e); $("recText").className = "hint err-text"; }
+});
+on("rec", async ({ payload: r }) => {
+  recording = r.on;
+  $("recCard").classList.toggle("recording", r.on);
+  $("recBtn").innerHTML = r.on ? `${I.stop}<span>Stop</span>` : `<span class="recdot"></span><span>Record</span>`;
+  $("recText").textContent = r.on ? `${r.text} · Stop with the button, ${S.hotkey} or Esc` : r.text;
+  $("recText").className = r.on ? "hint" : r.count ? "hint ok-text" : "hint";
+  if (!r.on && r.count) { S = (await call("get_all")).settings; render(); selectTab("steps"); }
+});
 
 // ---------- run ----------
 $("runBtn").addEventListener("click", async () => {
@@ -516,7 +587,7 @@ $("dlg").addEventListener("keydown", e => { if (e.key === "Escape") closeDlg(und
 const newId = () => "p" + Date.now().toString(36);
 async function presetAction(v) {
   const p = P();
-  if (v === "@new") { const n = await ask("New preset name", "My preset"); if (!n) return; const np = { id: newId(), name: n.slice(0, 40), steps: [{ kind: "click", x: null, y: null, button: "left", key: "Enter", mods: [], text: "", secs: 1, delay: .3, travel_ms: 0 }, { kind: "key", x: null, y: null, button: "left", key: "Enter", mods: [], text: "", secs: 1, delay: .3, travel_ms: 0 }], rounds: 2, round_wait: 2, watch: { x: null, y: null, color: null, tolerance: 12, cooldown: 10 } }; S.presets.push(np); S.active = np.id; }
+  if (v === "@new") { const n = await ask("New preset name", "My preset"); if (!n) return; const np = { id: newId(), name: n.slice(0, 40), steps: [{ kind: "click", x: null, y: null, button: "left", key: "Enter", mods: [], text: "", secs: 1, delay: .3, travel_ms: 0 }, { kind: "key", x: null, y: null, button: "left", key: "Enter", mods: [], text: "", secs: 1, delay: .3, travel_ms: 0 }], rounds: 2, round_wait: 2, watch: { x: null, y: null, w: 1, h: 1, color: null, grid: [], gw: 0, gh: 0, mode: "match", tolerance: 12, cooldown: 10 } }; S.presets.push(np); S.active = np.id; }
   else if (v === "@dup") { const np = structuredClone(p); np.id = newId(); np.name = (p.name + " copy").slice(0, 40); S.presets.push(np); S.active = np.id; }
   else if (v === "@ren") { const n = await ask("Rename preset", p.name); if (!n) return; p.name = n.slice(0, 40); }
   else if (v === "@del") { const ok = await ask(`Delete "${p.name}"?`, null, "Delete", "Its steps and Watch setup will be removed."); if (!ok) return; S.presets = S.presets.filter(x => x.id !== p.id); S.active = S.presets[0].id; }
@@ -557,7 +628,7 @@ $("checkUpd").addEventListener("click", () => checkUpdates(true));
 
 // ---------- tabs ----------
 const TABS = ["run", "steps", "watch", "settings"];
-function selectTab(name) { TABS.forEach(t => { const on = t === name; $("tab-" + t).setAttribute("aria-selected", on); $("tab-" + t).tabIndex = on ? 0 : -1; $(t).hidden = !on; }); document.querySelector("main").scrollTop = 0; }
+function selectTab(name) { TABS.forEach(t => { const on = t === name; $("tab-" + t).setAttribute("aria-selected", on); $("tab-" + t).tabIndex = on ? 0 : -1; $(t).hidden = !on; }); document.querySelector("main").scrollTop = 0;  if (name === "watch") drawSnap(); }
 TABS.forEach(t => $("tab-" + t).addEventListener("click", () => selectTab(t)));
 document.querySelector("nav").addEventListener("keydown", e => {
   const i = TABS.findIndex(t => $("tab-" + t).getAttribute("aria-selected") === "true");
@@ -579,7 +650,8 @@ function chime() {
   const all = await call("get_all");
   S = all.settings; plat = all.platform; ver = all.version; running = all.running; watching = all.watching; LOG = all.log;
   $("autostart").setAttribute("aria-checked", all.autostart);
-  render(); setWatchStatus({ on: watching, state: watching ? "armed" : "off", text: watching ? "Watching for the trigger color" : "Watch is off" });
+  render(); setWatchStatus({ on: watching, state: watching ? "armed" : "off", text: watching ? "Watching for the snapshot" : "Watch is off" });
+  $("recMac").hidden = plat !== "mac";
   if (!all.hotkey_ok) { toast(`${S.hotkey} couldn't be set up. Pick another key here.`); }
   checkUpdates(false); setInterval(() => checkUpdates(false), 6 * 3600 * 1000);
 })();

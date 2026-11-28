@@ -32,7 +32,7 @@ Tapline runs a short sequence of clicks and key presses, repeats it as many time
 | **Accent colors** | Gold, blue, green or rose, in light and dark mode. |
 | **Mouse travel time** | Set how many milliseconds the mouse takes to glide to each spot, or 0 to jump instantly. |
 | **Rounds and timing** | Repeat 1 to 999 times, with 0 seconds to 10 minutes between rounds. |
-| **Presets** | Save several setups, such as "New leads" and "Refresh queue", and switch in one click. |
+| **Presets** | Save several setups, such as "Daily reward" and "Refresh page", and switch in one click. |
 | **Your own key** | Start and stop with F1 to F12, with or without Ctrl, Shift or Alt. Works from any window. |
 | **Emergency stop** | <kbd>Esc</kbd> stops the run and switches Watch off. Or slam the mouse into any screen corner. |
 | **Sound and notification** | Know the moment Watch starts a run. |
